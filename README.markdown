@@ -104,6 +104,8 @@ Or even just:
 ```javascript
 Slidedown.fromMarkdown('markdown source').to('#slides');
 ```
+
+***
 # Usage
 
 Specify Markdown file with `src` in URL:
