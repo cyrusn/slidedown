@@ -1,0 +1,37 @@
+html, body {
+    background-color: #222222;
+
+}
+
+.slide h1,
+.slide h2,
+.slide h3 {
+  color: #c8cecc;
+  text-align: center;
+}
+
+.slide .content {
+    color: #808080;
+}
+
+
+.slide blockquote {
+    color: #808080;
+    background-color: #ccc;
+}
+
+.slide pre {
+  background-color: #ccc;
+}
+
+.slide li code,
+.slide h1 code,
+.slide h2 code,
+.slide h3 code,
+.slide h4 code,
+.slide h5 code,
+.slide h6 code,
+.slide p code {
+  color: #c7254e ;
+  background-color: #333333;
+}
