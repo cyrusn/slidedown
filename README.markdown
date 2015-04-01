@@ -33,9 +33,6 @@ Write your presentations in a text editor.
 Separate slides with `***`.
 
 ***
-```
-
-***
 
 # How it works
 
@@ -107,7 +104,17 @@ Or even just:
 ```javascript
 Slidedown.fromMarkdown('markdown source').to('#slides');
 ```
+# Usage
+
+Specify Markdown file with `src` in URL:
+
+```bash
+http://localhost:8000/   # defaults to 'README.markdown'
+# http://localhost:8000/?src=path/to/file.md
+http://localhost:8000/?src=alternate.md
+```
 
 ***
 
 # The End
+
