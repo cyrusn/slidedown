@@ -1,5 +1,5 @@
 # Slidedown
-## Markdown [slide decks](http://danieltao.com/slidedown)
+## Forked From [Danial Tao](http://danieltao.com/slidedown)
 
 ***
 
@@ -19,9 +19,12 @@ Separate slides with `***`.
 
 This is the source for the previous slide:
 
-```markdown
 ***
+# Markdown Syntax
 
+[cheatsheet](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
+
+***
 # The basic idea
 
 Write your presentations in a text editor.
@@ -48,8 +51,9 @@ slide.
 
 ***
 
-# For example, this slide has an `<h1>` and an `<h2>`
-## So Slidedown infers that the layout should be like this
+# For example
+## this slide has an `<h1>` and an `<h2>`
+
 
 ***
 
@@ -75,6 +79,21 @@ on mobile devices.
 ***
 
 # How to use it
+Specify Markdown file with `src` in URL:
+
+```bash
+# defaults to 'README.markdown'
+http://localhost:8000/
+
+# to any files you created
+http://localhost:8000/?src=path/to/your_markdown.md
+```
+
+***
+
+# How to use it - 2
+
+
 
 ```javascript
 // Fetch the source Markdown using an AJAX request
@@ -87,10 +106,9 @@ Slidedown.fromMarkdown('markdown source');
 Slidedown.fromHTML('html source');
 ```
 
+
 ***
-
-# How to use it
-
+# How to use it - 3
 By default, slides will be dumped directly into the document's `<body>` element.
 You can change this:
 
@@ -103,17 +121,6 @@ Or even just:
 
 ```javascript
 Slidedown.fromMarkdown('markdown source').to('#slides');
-```
-
-***
-# Usage
-
-Specify Markdown file with `src` in URL:
-
-```bash
-http://localhost:8000/   # defaults to 'README.markdown'
-# http://localhost:8000/?src=path/to/file.md
-http://localhost:8000/?src=alternate.md
 ```
 
 ***

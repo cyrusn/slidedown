@@ -27,7 +27,6 @@ tfoot > tr > td {
   padding-left: 1em;
   line-height: 1.42857143;
   vertical-align: top;
-  text-align: center;
   border-bottom: 1px solid #ddd;
 }
 
@@ -52,6 +51,7 @@ ul, ol {
 }
 
 li {
+  margin: 0.5em 0;
   padding-right: 1em;
   padding-left: 1em;
 }
@@ -192,9 +192,7 @@ blockquote {
 .slide li code,
 .slide p code {
   padding: 2px 4px;
-
   font-size: 90%;
-
   color: #c7254e;
   background-color: #f9f2f4;
   border-radius: 4px;
