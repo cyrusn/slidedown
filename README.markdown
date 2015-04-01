@@ -16,7 +16,9 @@ Separate slides with `***`.
 ***
 # Markdown Syntax
 
-## Learn `markdown syntax` from [here](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
+## Learn `markdown syntax`
+- [basic](https://help.github.com/articles/markdown-basics/)
+- [GitHub Flavored Markdown](https://help.github.com/articles/github-flavored-markdown/)
 
 ***
 
