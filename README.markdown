@@ -18,19 +18,6 @@ Separate slides with `***`.
 
 ## Learn `markdown syntax` from [here](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
 
-
-
-***
-# The basic idea
-
-Write your presentations in a text editor.
-
-- No fancy WYSIWIG editor
-- No hand-written HTML
-- Just text (Markdown)
-
-Separate slides with `***`.
-
 ***
 
 # How it works
@@ -49,7 +36,6 @@ slide.
 
 # For example
 ## this slide has an `<h1>` and an `<h2>`
-
 
 ***
 
@@ -89,8 +75,6 @@ http://localhost:8000/?src=path/to/your_markdown.md
 
 # How to use it - 2
 
-
-
 ```javascript
 // Fetch the source Markdown using an AJAX request
 Slidedown.fromXHR('path/to/slides.markdown');
@@ -101,7 +85,6 @@ Slidedown.fromMarkdown('markdown source');
 // Or if you actually have HTML rendered from Markdown already
 Slidedown.fromHTML('html source');
 ```
-
 
 ***
 # How to use it - 3
