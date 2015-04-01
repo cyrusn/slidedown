@@ -1,10 +1,10 @@
 # Slidedown
-## Forked From [Danial Tao](http://danieltao.com/slidedown)
+- [Download](http://github.com/cyrusn/slidedown)
+- Forked From [Danial Tao](http://danieltao.com/slidedown)
 
 ***
 
 # The basic idea
-
 Write your presentations in a text editor.
 
 - No fancy WYSIWIG editor
@@ -14,15 +14,11 @@ Write your presentations in a text editor.
 Separate slides with `***`.
 
 ***
-
-# For example
-
-This is the source for the previous slide:
-
-***
 # Markdown Syntax
 
-[cheatsheet](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
+## Learn `markdown syntax` from [here](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
+
+
 
 ***
 # The basic idea
@@ -126,4 +122,3 @@ Slidedown.fromMarkdown('markdown source').to('#slides');
 ***
 
 # The End
-

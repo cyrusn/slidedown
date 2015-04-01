@@ -1,3 +1,14 @@
+@import url("http://fonts.googleapis.com/css?family=Inconsolata|Open+Sans:300,400,700");
+
+html, body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+
+  overflow-x: hidden;
+}
+
 body {
   font-family: sans-serif;
 }
@@ -27,13 +38,14 @@ tfoot > tr > td {
   padding-left: 1em;
   line-height: 1.42857143;
   vertical-align: top;
-  border-bottom: 1px solid #ddd;
+  border: 1px solid #ddd;
 }
 
 thead > tr > th,
 thead > tr > td {
   border-bottom-width: 2px;
 }
+
 
 img {
   max-width: 100%;
@@ -190,13 +202,21 @@ blockquote {
 
 /* Yeah, I like Bootstrap's code formatting, OK? */
 .slide li code,
+.slide h1 code,
+.slide h2 code,
+.slide h3 code,
+.slide h4 code,
+.slide h5 code,
+.slide h6 code,
 .slide p code {
   padding: 2px 4px;
   font-size: 90%;
-  color: #c7254e;
+  color: #c7254e ;
   background-color: #f9f2f4;
   border-radius: 4px;
 }
+
+
 
 [data-layout="title-only"] h1 {
   position: absolute;
@@ -228,6 +248,7 @@ blockquote {
   right: 0;
   margin-top: 36px;
   font-size: 48px;
+  color: #555555;
   font-weight: normal;
   border-bottom: none;
 }
