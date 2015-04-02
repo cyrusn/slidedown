@@ -1,9 +1,10 @@
+/* This is the original stylesheet*/
 @import url("http://fonts.googleapis.com/css?family=Inconsolata|Open+Sans:300,400,700");
 
 html, body {
-  height: 100%;
-  width: 100%;
-  margin: 0;
+  height : 100%;
+  width  : 100%;
+  margin : 0;
   padding: 0;
 
   overflow-x: hidden;
@@ -152,7 +153,6 @@ code {
 }
 
 [data-layout="title-subtitle"] h1 {
-
   position     : absolute;
   bottom       : 50%;
   left         : 0;

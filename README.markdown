@@ -1,9 +1,6 @@
 # Slidedown
 - [Download](http://github.com/cyrusn/slidedown)
 - Forked From [Danial Tao](http://danieltao.com/slidedown)
-=======
-## Markdown [slide decks](http://danieltao.com/slidedown)
-
 
 ***
 
@@ -80,7 +77,6 @@ http://localhost:8000/?src=path/to/your_markdown.md
 
 # How to use it - 2
 
-
 ```javascript
 // Fetch the source Markdown using an AJAX request
 Slidedown.fromXHR('path/to/slides.markdown');
@@ -94,7 +90,6 @@ Slidedown.fromHTML('html source');
 
 ***
 # How to use it - 3
-
 By default, slides will be dumped directly into the document's `<body>` element.
 You can change this:
 
@@ -107,16 +102,6 @@ Or even just:
 
 ```javascript
 Slidedown.fromMarkdown('markdown source').to('#slides');
-```
-
-# Usage
-
-Specify Markdown file with `src` in URL:
-
-```bash
-http://localhost:8000/   # defaults to 'README.markdown'
-# http://localhost:8000/?src=path/to/file.md
-http://localhost:8000/?src=alternate.md
 ```
 
 ***
