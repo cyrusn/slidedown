@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 @import url("http://fonts.googleapis.com/css?family=Inconsolata|Open+Sans:300,400,700");
 
 html, body {
@@ -9,8 +8,6 @@ html, body {
   overflow-x: hidden;
 }
 
-=======
->>>>>>> 1ea527b7f2a6a02f26196a5e506c7c974a9005ee
 body {
   font-family: sans-serif;
 }
@@ -19,53 +16,33 @@ code {
   font-family: monospace;
 }
 
-<<<<<<< HEAD
 del, em, strong {
-=======
-strong {
->>>>>>> 1ea527b7f2a6a02f26196a5e506c7c974a9005ee
   color: #f92672;
 }
 
 table {
-<<<<<<< HEAD
   margin: 0;
-=======
->>>>>>> 1ea527b7f2a6a02f26196a5e506c7c974a9005ee
   width: 100%;
   max-width: 100%;
   margin-bottom: 20px;
   background-color: transparent;
 }
 
-<<<<<<< HEAD
-=======
-thead > tr > th,
->>>>>>> 1ea527b7f2a6a02f26196a5e506c7c974a9005ee
 tbody > tr > th,
 tfoot > tr > th,
 thead > tr > td,
 tbody > tr > td,
 tfoot > tr > td {
-<<<<<<< HEAD
   margin: 0;
-=======
->>>>>>> 1ea527b7f2a6a02f26196a5e506c7c974a9005ee
   padding-right: 1em;
   padding-left: 1em;
   line-height: 1.42857143;
   vertical-align: top;
-<<<<<<< HEAD
   border: 1px solid;
-=======
-  text-align: center;
-  border-bottom: 1px solid #ddd;
->>>>>>> 1ea527b7f2a6a02f26196a5e506c7c974a9005ee
 }
 
 thead > tr > th,
 thead > tr > td {
-<<<<<<< HEAD
   margin: 0;
   padding-right: 1em;
   padding-left: 1em;
@@ -77,11 +54,6 @@ thead > tr > td {
 }
 
 
-=======
-  border-bottom-width: 2px;
-}
-
->>>>>>> 1ea527b7f2a6a02f26196a5e506c7c974a9005ee
 img {
   max-width: 100%;
   height: auto;
@@ -98,10 +70,7 @@ ul, ol {
 }
 
 li {
-<<<<<<< HEAD
   margin: 0.5em 0;
-=======
->>>>>>> 1ea527b7f2a6a02f26196a5e506c7c974a9005ee
   padding-right: 1em;
   padding-left: 1em;
 }
@@ -112,22 +81,12 @@ a {
   text-decoration: underline;
 }
 
-<<<<<<< HEAD
 pre, blockquote {
   border: 1px solid #999;/
 }
 
 blockquote {
   font-size: 90%;
-=======
-pre,
-  blockquote {
-    border: 1px solid #999;/
-  }
-
-blockquote {
-  font-size: 17.5px;
->>>>>>> 1ea527b7f2a6a02f26196a5e506c7c974a9005ee
   border-left: 5px solid #eee;
 }
 
@@ -209,10 +168,7 @@ blockquote {
     max-width: 75%;
   }
 }
-<<<<<<< HEAD
 
-=======
->>>>>>> 1ea527b7f2a6a02f26196a5e506c7c974a9005ee
 .slide h1 {
   border-bottom: 1px solid #cfcfc2;
 }
@@ -220,10 +176,6 @@ blockquote {
 .slide h1,
 .slide h2,
 .slide h3 {
-<<<<<<< HEAD
-=======
-  color: #26272B;
->>>>>>> 1ea527b7f2a6a02f26196a5e506c7c974a9005ee
   text-align: center;
 }
 
@@ -236,10 +188,6 @@ blockquote {
 .slide pre {
   position: relative;
   padding: 12px;
-<<<<<<< HEAD
-=======
-  background-color: #eee;
->>>>>>> 1ea527b7f2a6a02f26196a5e506c7c974a9005ee
   white-space: pre-wrap;
 }
 
@@ -258,7 +206,6 @@ blockquote {
 
 /* Yeah, I like Bootstrap's code formatting, OK? */
 .slide li code,
-<<<<<<< HEAD
 .slide h1 code,
 .slide h2 code,
 .slide h3 code,
@@ -274,18 +221,6 @@ blockquote {
 
 
 
-=======
-.slide p code {
-  padding: 2px 4px;
-
-  font-size: 90%;
-
-  color: #c7254e;
-  background-color: #f9f2f4;
-  border-radius: 4px;
-}
-
->>>>>>> 1ea527b7f2a6a02f26196a5e506c7c974a9005ee
 [data-layout="title-only"] h1 {
   position: absolute;
   top: 50%;
@@ -316,10 +251,7 @@ blockquote {
   right: 0;
   margin-top: 36px;
   font-size: 48px;
-<<<<<<< HEAD
   color: #555555;
-=======
->>>>>>> 1ea527b7f2a6a02f26196a5e506c7c974a9005ee
   font-weight: normal;
   border-bottom: none;
 }
