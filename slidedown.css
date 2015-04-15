@@ -1,4 +1,5 @@
 @import url("http://fonts.googleapis.com/css?family=Inconsolata|Open+Sans:300,400,700");
+
 @media screen {
     html,
     body {
@@ -11,10 +12,15 @@
 }
 
 @media print {
+  body {
+    margin: 0 auto;
+    background: white;
+    display: block;
+    width: 21cm;
+    height: 29.7cm;
     margin: 0;
-    padding: 0;
-    background-color: #FAFAFA;
-    font: 12pt "Tahoma";
+    box-shadow: 0;
+  }
 }
 
 body {
