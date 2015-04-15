@@ -1,9 +1,7 @@
-html, body {
+html,
+body {
     background-color: #222222;
-
 }
-
-
 
 a:link {
     text-decoration: none;
@@ -21,18 +19,16 @@ a:active {
     text-decoration: underline;
 }
 
-
 .slide h1,
 .slide h2,
 .slide h3 {
-  color: #c8cecc;
-  text-align: center;
+    color: #c8cecc;
+    text-align: center;
 }
 
 .slide .content {
     color: #808080;
 }
-
 
 .slide blockquote {
     color: #808080;
@@ -40,7 +36,7 @@ a:active {
 }
 
 .slide pre {
-  background-color: #ccc;
+    background-color: #ccc;
 }
 
 .slide li code,
@@ -51,6 +47,6 @@ a:active {
 .slide h5 code,
 .slide h6 code,
 .slide p code {
-  color: #c7254e ;
-  background-color: #333333;
+    color: #c7254e;
+    background-color: #333333;
 }

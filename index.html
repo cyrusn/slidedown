@@ -30,7 +30,7 @@
             return params;
         };
         // console.log(document.location);
-        var mdSource = parseQuery(document.location.search).src || 'README.markdown';
+        var mdSource = parseQuery(document.location.search).src || 'index.md' ||'README.markdown';
         Slidedown.fromXHR(mdSource).to('#slides');
     </script>
 </head>
