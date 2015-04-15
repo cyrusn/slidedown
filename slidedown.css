@@ -1,79 +1,174 @@
-/* This is the original stylesheet*/
 @import url("http://fonts.googleapis.com/css?family=Inconsolata|Open+Sans:300,400,700");
 
-html, body {
-  height : 100%;
-  width  : 100%;
-  margin : 0;
-  padding: 0;
-
-  overflow-x: hidden;
+@media screen {
+  html, body {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+}
+@media print {
+    margin: 0;
+    padding: 0;
+    background-color: #FAFAFA;
+    font: 12pt "Tahoma";
 }
 
 body {
-  font-family: "Open Sans", Helvetica, Arial, sans-serif;
+  font-family: sans-serif;
 }
 
 code {
-  font-family: "Inconsolata", monospace;
+  font-family: monospace;
 }
 
-.slide {
-  position  : absolute;
-  top       : 0;
-  bottom    : 0;
-  min-height: 100%;
-  width     : 100%;
-  display   : none;
-  overflow-x: hidden;
+p {
+  padding: 0 5%
 }
 
-.slide .content {
-  min-height: calc(100% - 48px);
-  width: fit-content;
-  width: intrinsic;
-  max-width: 100%;
-  margin: auto;
-  padding-top: 48px;
-
-  overflow-x: hidden;
-  overflow-y: auto;
+del, em, strong {
+  color: #f92672;
 }
 
-.slide footer {
-  position: absolute;
-  bottom: 12px;
+table {
+  margin: 0;
   width: 100%;
-  text-align: center;
+  max-width: 100%;
+  margin-bottom: 20px;
+  background-color: transparent;
 }
 
-.slide .navigation-instructions {
-  display: inline-block;
-  font-size: small;
-  color: #808080;
-  text-align: left;
+tbody > tr > th,
+tfoot > tr > th,
+thead > tr > td,
+tbody > tr > td,
+tfoot > tr > td {
+  margin: 0;
+  padding-right: 1em;
+  padding-left: 1em;
+  line-height: 1.42857143;
+  vertical-align: top;
+  border: 1px solid;
 }
 
-.slide.previous,
-.slide.current,
-.slide.next {
-  display: block;
-
-  transition: left 0.5s ease;
-  -moz-transition: left 0.5s ease;
-  -webkit-transition: left 0.5s ease;
+thead > tr > th,
+thead > tr > td {
+  margin: 0;
+  padding-right: 1em;
+  padding-left: 1em;
+  line-height: 1.42857143;
+  vertical-align: top;
+  border-bottom-width: 1px;
+  border-style: none none double;
+  /*border-bottom: 2px solid #ddd;*/
 }
 
-.slide.previous {
-  left: -100%;
+
+img {
+  max-width: 100%;
+  height: auto;
+  padding: 4px;
+  line-height: 1.42857143;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 
-.slide.current {
-  left: 0;
+
+li {
+  margin: 0.5em 0;
+  padding-right: 1em;
+  padding-left: 1em;
 }
 
-.slide.next {
-  left: 100%;
+a {
+  background-color: transparent;
+  color: #337ab7;
+  text-decoration: underline;
+}
+
+pre, blockquote {
+  border: 1px solid #999;/
+}
+
+blockquote {
+  font-size: 90%;
+  border-left: 5px solid #eee;
+}
+
+@media print {
+  .slide footer {
+    display: none !important;
+  }
+}
+
+@media screen {
+  .slide {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    min-height: 100%;
+    width: 100%;
+    display: none;
+    overflow-x: hidden;
+  }
+
+  .slide .content {
+    min-height: calc(100% - 48px);
+    width: fit-content;
+    width: intrinsic;
+    max-width: 100%;
+    margin: auto;
+    padding-top: 48px;
+    color: #555555;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .slide footer {
+    position: absolute;
+    bottom: 12px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .slide .navigation-instructions {
+    display: inline-block;
+    font-size: small;
+    color: #808080;
+    text-align: left;
+  }
+
+  .slide.previous,
+  .slide.current,
+  .slide.next {
+    display: block;
+    transition: left 0.5s ease;
+    -moz-transition: left 0.5s ease;
+    -webkit-transition: left 0.5s ease;
+  }
+
+  .slide.previous {
+    left: -100%;
+  }
+
+  .slide.current {
+    left: 0;
+  }
+
+  .slide.next {
+    left: 100%;
+  }
+
+}
+
+
+@media all and (max-width: 768px) {
+  body {
+    font-size: 80%;
+  }
 }
 
 @media all and (max-width: 959px) {
@@ -98,6 +193,10 @@ code {
   }
 }
 
+.slide h1 {
+  border-bottom: 1px solid #cfcfc2;
+}
+
 .slide h1,
 .slide h2,
 .slide h3 {
@@ -107,19 +206,20 @@ code {
 .slide h1 strong,
 .slide h2 strong,
 .slide h3 strong {
-  color: red;
+  color: #f92672;
 }
 
 .slide pre {
   position: relative;
   padding: 12px;
-  background-color: #eee;
   white-space: pre-wrap;
 }
 
 .slide blockquote {
   border-left: 6px solid #888;
   padding-left: 12px;
+  border: 1px solid #999;
+  page-break-inside: avoid;
 }
 
 /* Center images on their own line (<p><img /></p>) */
@@ -130,70 +230,77 @@ code {
 
 /* Yeah, I like Bootstrap's code formatting, OK? */
 .slide li code,
+.slide h1 code,
+.slide h2 code,
+.slide h3 code,
+.slide h4 code,
+.slide h5 code,
+.slide h6 code,
 .slide p code {
   padding: 2px 4px;
-
   font-size: 90%;
-
-  color: #c7254e;
-  background-color: #f9f2f4;
+  color: #c7254e ;
   border-radius: 4px;
 }
 
-[data-layout="title-only"] h1 {
-  position   : absolute;
-  top        : 50%;
-  left       : 0;
-  right      : 0;
-  margin-top : -36px;
 
-  font-size  : 72px;
-  font-weight: bold;
-  line-height: 72px;
-}
+@media screen{
+  [data-layout="title-only"] h1 {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    margin-top: -36px;
+    font-size: 72px;
+    font-weight: bold;
+    line-height: 72px;
+    border-bottom: none;
+  }
 
-[data-layout="title-subtitle"] h1 {
-  position     : absolute;
-  bottom       : 50%;
-  left         : 0;
-  right        : 0;
-  margin-bottom: 0;
+  [data-layout="title-subtitle"] h1 {
+    position: absolute;
+    bottom: 55%;
+    left: 0;
+    right: 0;
+    margin-bottom: 0;
+    font-size: 64px;
+    font-weight: bold;
+    border-bottom: none;
+  }
 
-  font-size    : 48px;
-  font-weight  : bold;
-}
+  [data-layout="title-subtitle"] h2 {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    margin-top: 36px;
+    font-size: 48px;
+    color: #555555;
+    font-weight: normal;
+    border-bottom: none;
+  }
 
-[data-layout="title-subtitle"] h2 {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  margin-top: 0;
+  [data-layout="side-by-side"] .left,
+  [data-layout="side-by-side"] .right {
+    position: absolute;
+    text-align: center;
+  }
 
-  font-size: 36px;
-  font-weight: normal;
-}
+  [data-layout="side-by-side"] .left ol, ul,
+  [data-layout="side-by-side"] .right ol, ul {
+    display: inline-block;
+    text-align: left;
+  }
 
-[data-layout="side-by-side"] .left,
-[data-layout="side-by-side"] .right {
-  position: absolute;
-  text-align: center;
-}
+  [data-layout="side-by-side"] .left {
+    left: 5%;
+    right: 50%;
+    padding-right: 2.5%;
+  }
 
-[data-layout="side-by-side"] .left ul,
-[data-layout="side-by-side"] .right ul {
-  display: inline-block;
-  text-align: left;
-}
-
-[data-layout="side-by-side"] .left {
-  left: 24px;
-  right: 50%;
-  padding-right: 12px;
-}
-
-[data-layout="side-by-side"] .right {
-  right: 24px;
-  left: 50%;
-  padding-left: 12px;
+  [data-layout="side-by-side"] .right {
+    right: 5%;
+    left: 50%;
+    padding-left: 2.5%
+  }
 }

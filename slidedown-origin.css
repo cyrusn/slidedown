@@ -1,102 +1,32 @@
+/* This is the original stylesheet*/
 @import url("http://fonts.googleapis.com/css?family=Inconsolata|Open+Sans:300,400,700");
 
+
+
 html, body {
-  height: 100%;
-  width: 100%;
-  margin: 0;
+  height : 100%;
+  width  : 100%;
+  margin : 0;
   padding: 0;
+
   overflow-x: hidden;
 }
 
 body {
-  font-family: sans-serif;
+  font-family: "Open Sans", Helvetica, Arial, sans-serif;
 }
 
 code {
-  font-family: monospace;
-}
-
-del, em, strong {
-  color: #f92672;
-}
-
-table {
-  margin: 0;
-  width: 100%;
-  max-width: 100%;
-  margin-bottom: 20px;
-  background-color: transparent;
-}
-
-tbody > tr > th,
-tfoot > tr > th,
-thead > tr > td,
-tbody > tr > td,
-tfoot > tr > td {
-  margin: 0;
-  padding-right: 1em;
-  padding-left: 1em;
-  line-height: 1.42857143;
-  vertical-align: top;
-  border: 1px solid;
-}
-
-thead > tr > th,
-thead > tr > td {
-  margin: 0;
-  padding-right: 1em;
-  padding-left: 1em;
-  line-height: 1.42857143;
-  vertical-align: top;
-  border-bottom-width: 1px;
-  border-style: none none double;
-  /*border-bottom: 2px solid #ddd;*/
-}
-
-
-img {
-  max-width: 100%;
-  height: auto;
-  padding: 4px;
-  line-height: 1.42857143;
-  background-color: #fff;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-ul, ol {
-  margin-left: 1em;
-  margin-right: 1em;
-}
-
-li {
-  margin: 0.5em 0;
-  padding-right: 1em;
-  padding-left: 1em;
-}
-
-a {
-  background-color: transparent;
-  color: #337ab7;
-  text-decoration: underline;
-}
-
-pre, blockquote {
-  border: 1px solid #999;/
-}
-
-blockquote {
-  font-size: 90%;
-  border-left: 5px solid #eee;
+  font-family: "Inconsolata", monospace;
 }
 
 .slide {
-  position: absolute;
-  top: 0;
-  bottom: 0;
+  position  : absolute;
+  top       : 0;
+  bottom    : 0;
   min-height: 100%;
-  width: 100%;
-  display: none;
+  width     : 100%;
+  display   : none;
   overflow-x: hidden;
 }
 
@@ -107,7 +37,7 @@ blockquote {
   max-width: 100%;
   margin: auto;
   padding-top: 48px;
-  color: #555555;
+
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -130,6 +60,7 @@ blockquote {
 .slide.current,
 .slide.next {
   display: block;
+
   transition: left 0.5s ease;
   -moz-transition: left 0.5s ease;
   -webkit-transition: left 0.5s ease;
@@ -169,10 +100,6 @@ blockquote {
   }
 }
 
-.slide h1 {
-  border-bottom: 1px solid #cfcfc2;
-}
-
 .slide h1,
 .slide h2,
 .slide h3 {
@@ -182,20 +109,19 @@ blockquote {
 .slide h1 strong,
 .slide h2 strong,
 .slide h3 strong {
-  color: #f92672;
+  color: red;
 }
 
 .slide pre {
   position: relative;
   padding: 12px;
+  background-color: #eee;
   white-space: pre-wrap;
 }
 
 .slide blockquote {
   border-left: 6px solid #888;
   padding-left: 12px;
-  border: 1px solid #999;
-  page-break-inside: avoid;
 }
 
 /* Center images on their own line (<p><img /></p>) */
@@ -206,42 +132,37 @@ blockquote {
 
 /* Yeah, I like Bootstrap's code formatting, OK? */
 .slide li code,
-.slide h1 code,
-.slide h2 code,
-.slide h3 code,
-.slide h4 code,
-.slide h5 code,
-.slide h6 code,
 .slide p code {
   padding: 2px 4px;
+
   font-size: 90%;
-  color: #c7254e ;
+
+  color: #c7254e;
+  background-color: #f9f2f4;
   border-radius: 4px;
 }
 
-
-
 [data-layout="title-only"] h1 {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  margin-top: -36px;
-  font-size: 72px;
+  position   : absolute;
+  top        : 50%;
+  left       : 0;
+  right      : 0;
+  margin-top : -36px;
+
+  font-size  : 72px;
   font-weight: bold;
   line-height: 72px;
-  border-bottom: none;
 }
 
 [data-layout="title-subtitle"] h1 {
-  position: absolute;
-  bottom: 55%;
-  left: 0;
-  right: 0;
+  position     : absolute;
+  bottom       : 50%;
+  left         : 0;
+  right        : 0;
   margin-bottom: 0;
-  font-size: 64px;
-  font-weight: bold;
-  border-bottom: none;
+
+  font-size    : 48px;
+  font-weight  : bold;
 }
 
 [data-layout="title-subtitle"] h2 {
@@ -249,11 +170,10 @@ blockquote {
   top: 50%;
   left: 0;
   right: 0;
-  margin-top: 36px;
-  font-size: 48px;
-  color: #555555;
+  margin-top: 0;
+
+  font-size: 36px;
   font-weight: normal;
-  border-bottom: none;
 }
 
 [data-layout="side-by-side"] .left,
@@ -262,8 +182,8 @@ blockquote {
   text-align: center;
 }
 
-[data-layout="side-by-side"] .left ol, ul,
-[data-layout="side-by-side"] .right ol, ul {
+[data-layout="side-by-side"] .left ul,
+[data-layout="side-by-side"] .right ul {
   display: inline-block;
   text-align: left;
 }
