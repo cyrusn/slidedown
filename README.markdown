@@ -66,11 +66,16 @@ on mobile devices.
 Specify Markdown file with `src` in URL:
 
 ```bash
-# defaults to 'README.markdown'
+# defaults to 'index.md'
 http://localhost:8000/
 
+# You can use to post your relative link of your src file to make like table of content.
+# if index.md not exist, then defaults to 'README.markdown'
+# or reach the readme file from below
+http://localhost:8000/?src=README.markdown
+
 # to any files you created
-http://localhost:8000/?src=path/to/your_markdown.md
+http://localhost:8000/?src=path/to/file.md
 ```
 
 ***

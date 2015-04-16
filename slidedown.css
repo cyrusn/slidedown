@@ -21,6 +21,10 @@
         margin: 0;
         box-shadow: 0;
     }
+    h1, h2, h3, h4, h5, h6 {
+        text-align: left !important;
+    }
+
 }
 
 body {
@@ -158,6 +162,12 @@ blockquote {
         font-size: small;
         text-align: left;
     }
+
+    .slide .navigation-instructions ul,
+    .slide .navigation-instructions p {
+        margin: 0 !important;
+    }
+
     .slide.previous,
     .slide.current,
     .slide.next {
