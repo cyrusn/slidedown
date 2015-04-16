@@ -50,3 +50,17 @@ a:active {
     color: #c7254e;
     background-color: #333333;
 }
+
+.slide h1 strong,
+.slide h2 strong,
+.slide h3 strong {
+    color: #f92672;
+}
+
+[data-layout="title-subtitle"] h2 {
+    color: #555555;
+}
+
+.slide .navigation-instructions {
+    color: #808080;
+}

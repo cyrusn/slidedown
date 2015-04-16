@@ -1,5 +1,4 @@
 @import url("http://fonts.googleapis.com/css?family=Inconsolata|Open+Sans:300,400,700");
-
 @media screen {
     html,
     body {
@@ -12,15 +11,16 @@
 }
 
 @media print {
-  body {
-    margin: 0 auto;
-    background: white;
-    display: block;
-    width: 21cm;
-    height: 29.7cm;
-    margin: 0;
-    box-shadow: 0;
-  }
+    html,
+    body {
+        margin: 0 auto;
+        background: white;
+        display: block;
+        width: 21cm;
+        height: 29.7cm;
+        margin: 0;
+        box-shadow: 0;
+    }
 }
 
 body {
@@ -31,18 +31,20 @@ code {
     font-family: monospace;
 }
 
-ol, ul {
+ol,
+ul {
     display: inline-block;
     text-align: left;
 }
 
-li ul, li ol {
+li ul,
+li ol {
     display: block;
     text-align: left;
 }
 
 p {
-    padding: 0 5%
+    padding: 1% 5%
 }
 
 del,
@@ -69,19 +71,22 @@ tfoot > tr > td {
     padding-left: 1em;
     line-height: 1.42857143;
     vertical-align: top;
-    border: 1px solid;
 }
 
 thead > tr > th,
 thead > tr > td {
     margin: 0;
+    font-size: 120%;
     padding-right: 1em;
     padding-left: 1em;
     line-height: 1.42857143;
     vertical-align: top;
-    border-bottom-width: 1px;
-    border-style: none none double;
-    /*border-bottom: 2px solid #ddd;*/
+    border-bottom-width: 4px;
+    border-style: none none double none;
+}
+
+tr:nth-child(even) {
+    background-color: #33363B;
 }
 
 img {
@@ -103,13 +108,11 @@ li {
 a {
     background-color: transparent;
     color: #337ab7;
-    text-decoration: underline;
 }
 
 pre,
 blockquote {
     border: 1px solid #999;
-    /
 }
 
 blockquote {
@@ -153,16 +156,18 @@ blockquote {
     .slide .navigation-instructions {
         display: inline-block;
         font-size: small;
-        color: #808080;
         text-align: left;
     }
     .slide.previous,
     .slide.current,
     .slide.next {
         display: block;
+        /* trigger transition animation */
+    /*
         transition: left 0.5s ease;
         -moz-transition: left 0.5s ease;
         -webkit-transition: left 0.5s ease;
+    */
     }
     .slide.previous {
         left: -100%;
@@ -175,19 +180,24 @@ blockquote {
     }
 }
 
-@media all and (max-width: 768px) {
+
+@media all and (max-width: 767px) {
     body {
-        font-size: 80%;
+        font-size: 80% !important;
+    }
+
+    .slide footer {
+        display: none !important;
     }
 }
 
-@media all and (max-width: 959px) {
+@media all and (max-width: 991px) {
     body {
         font-size: 125%;
     }
 }
 
-@media all and (min-width: 960px) {
+@media all and (min-width: 992px) {
     body {
         font-size: 200%;
     }
@@ -196,7 +206,7 @@ blockquote {
     }
 }
 
-@media all and (min-width: 1280px) {
+@media all and (min-width: 1200px) {
     .slide .content {
         max-width: 75%;
     }
@@ -209,14 +219,11 @@ blockquote {
 .slide h1,
 .slide h2,
 .slide h3 {
+    margin-left: 5px;
+    margin-right: 5px;
     text-align: center;
 }
 
-.slide h1 strong,
-.slide h2 strong,
-.slide h3 strong {
-    color: #f92672;
-}
 
 .slide pre {
     position: relative;
@@ -248,7 +255,6 @@ blockquote {
 .slide p code {
     padding: 2px 4px;
     font-size: 90%;
-    color: #c7254e;
     border-radius: 4px;
 }
 
@@ -258,10 +264,9 @@ blockquote {
         top: 50%;
         left: 0;
         right: 0;
-        margin-top: -36px;
-        font-size: 72px;
+        margin-top: -5%;
+        font-size: 250%;
         font-weight: bold;
-        line-height: 72px;
         border-bottom: none;
     }
     [data-layout="title-subtitle"] h1 {
@@ -270,7 +275,7 @@ blockquote {
         left: 0;
         right: 0;
         margin-bottom: 0;
-        font-size: 64px;
+        font-size: 200%;
         font-weight: bold;
         border-bottom: none;
     }
@@ -279,9 +284,8 @@ blockquote {
         top: 50%;
         left: 0;
         right: 0;
-        margin-top: 36px;
-        font-size: 48px;
-        color: #555555;
+        margin-top: 1%;
+        font-size: 150%;
         font-weight: normal;
         border-bottom: none;
     }
