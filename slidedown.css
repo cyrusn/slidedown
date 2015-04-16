@@ -19,6 +19,7 @@
         width: 21cm;
         height: 29.7cm;
         margin: 0;
+        font-size: 150% !important;
         box-shadow: 0;
     }
     h1, h2, h3, h4, h5, h6 {
