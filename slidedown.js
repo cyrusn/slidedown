@@ -109,7 +109,9 @@ var marked = require('marked'),
 
     fromMarkdown: function fromMarkdown(markdown) {
       marked.setOptions({
-        renderer: new CustomRenderer()
+        renderer: new CustomRenderer(),
+        gfm: true,
+        breaks: true
       });
 
       var html = marked(markdown);

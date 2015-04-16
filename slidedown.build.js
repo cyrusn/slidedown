@@ -1,5 +1,29 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-var Highlight = function() {
+/*
+Syntax highlighting with language autodetection.
+https://highlightjs.org/
+*/
+
+(function(factory) {
+
+  // Setup highlight.js for different environments. First is Node.js or
+  // CommonJS.
+  if(typeof exports !== 'undefined') {
+    factory(exports);
+  } else {
+    // Export hljs globally even when using AMD for cases when this script
+    // is loaded with others that may still expect a global hljs.
+    window.hljs = factory({});
+
+    // Finally register the global hljs with AMD.
+    if(typeof define === 'function' && define.amd) {
+      define([], function() {
+        return window.hljs;
+      });
+    }
+  }
+
+}(function(hljs) {
 
   /* Utility functions */
 
@@ -19,18 +43,18 @@ var Highlight = function() {
   function blockLanguage(block) {
     var classes = (block.className + ' ' + (block.parentNode ? block.parentNode.className : '')).split(/\s+/);
     classes = classes.map(function(c) {return c.replace(/^lang(uage)?-/, '');});
-    return classes.filter(function(c) {return getLanguage(c) || c == 'no-highlight';})[0];
+    return classes.filter(function(c) {return getLanguage(c) || /no(-?)highlight|plain|text/.test(c);})[0];
   }
 
   function inherit(parent, obj) {
-    var result = {};
-    for (var key in parent)
+    var result = {}, key;
+    for (key in parent)
       result[key] = parent[key];
     if (obj)
-      for (var key in obj)
+      for (key in obj)
         result[key] = obj[key];
     return result;
-  };
+  }
 
   /* Stream merging */
 
@@ -40,8 +64,6 @@ var Highlight = function() {
       for (var child = node.firstChild; child; child = child.nextSibling) {
         if (child.nodeType == 3)
           offset += child.nodeValue.length;
-        else if (tag(child) == 'br')
-          offset += 1;
         else if (child.nodeType == 1) {
           result.push({
             event: 'start',
@@ -49,11 +71,16 @@ var Highlight = function() {
             node: child
           });
           offset = _nodeStream(child, offset);
-          result.push({
-            event: 'stop',
-            offset: offset,
-            node: child
-          });
+          // Prevent void elements from having an end tag that would actually
+          // double them in the output. There are more void elements in HTML
+          // but we list only those realistically expected in code display.
+          if (!tag(child).match(/br|hr|img|input/)) {
+            result.push({
+              event: 'stop',
+              offset: offset,
+              node: child
+            });
+          }
         }
       }
       return offset;
@@ -143,7 +170,7 @@ var Highlight = function() {
     }
 
     function langRe(value, global) {
-      return RegExp(
+      return new RegExp(
         reStr(value),
         'm' + (language.case_insensitive ? 'i' : '') + (global ? 'g' : '')
       );
@@ -177,7 +204,7 @@ var Highlight = function() {
         }
         mode.keywords = compiled_keywords;
       }
-      mode.lexemesRe = langRe(mode.lexemes || /\b[A-Za-z0-9_]+\b/, true);
+      mode.lexemesRe = langRe(mode.lexemes || /\b\w+\b/, true);
 
       if (parent) {
         if (mode.beginKeywords) {
@@ -223,9 +250,7 @@ var Highlight = function() {
         .concat([mode.terminator_end, mode.illegal])
         .map(reStr)
         .filter(Boolean);
-      mode.terminators = terminators.length ? langRe(terminators.join('|'), true) : {exec: function(s) {return null;}};
-
-      mode.continuation = {};
+      mode.terminators = terminators.length ? langRe(terminators.join('|'), true) : {exec: function(/*s*/) {return null;}};
     }
 
     compileMode(language);
@@ -252,6 +277,9 @@ var Highlight = function() {
 
     function endOfMode(mode, lexeme) {
       if (testRe(mode.endRe, lexeme)) {
+        while (mode.endsParent && mode.parent) {
+          mode = mode.parent;
+        }
         return mode;
       }
       if (mode.endsWithParent) {
@@ -304,7 +332,7 @@ var Highlight = function() {
       if (top.subLanguage && !languages[top.subLanguage]) {
         return escape(mode_buffer);
       }
-      var result = top.subLanguage ? highlight(top.subLanguage, mode_buffer, true, top.continuation.top) : highlightAuto(mode_buffer);
+      var result = top.subLanguage ? highlight(top.subLanguage, mode_buffer, true, continuations[top.subLanguage]) : highlightAuto(mode_buffer);
       // Counting embedded language score towards the host language may be disabled
       // with zeroing the containing mode relevance. Usecase in point is Markdown that
       // allows XML everywhere and makes every XML snippet to have a much larger Markdown
@@ -313,7 +341,7 @@ var Highlight = function() {
         relevance += result.relevance;
       }
       if (top.subLanguageMode == 'continuous') {
-        top.continuation.top = result.top;
+        continuations[top.subLanguage] = result.top;
       }
       return buildSpan(result.language, result.value, false, true);
     }
@@ -395,10 +423,11 @@ var Highlight = function() {
 
     compileLanguage(language);
     var top = continuation || language;
-    var result = '';
-    for(var current = top; current != language; current = current.parent) {
+    var continuations = {}; // keep continuations for sub-languages
+    var result = '', current;
+    for(current = top; current != language; current = current.parent) {
       if (current.className) {
-        result += buildSpan(current.className, result, true);
+        result = buildSpan(current.className, '', true) + result;
       }
     }
     var mode_buffer = '';
@@ -414,11 +443,11 @@ var Highlight = function() {
         index = match.index + count;
       }
       processLexeme(value.substr(index));
-      for(var current = top; current.parent; current = current.parent) { // close dangling modes
+      for(current = top; current.parent; current = current.parent) { // close dangling modes
         if (current.className) {
           result += '</span>';
         }
-      };
+      }
       return {
         relevance: relevance,
         value: result,
@@ -484,7 +513,7 @@ var Highlight = function() {
   */
   function fixMarkup(value) {
     if (options.tabReplace) {
-      value = value.replace(/^((<[^>]+>|\t)+)/gm, function(match, p1, offset, s) {
+      value = value.replace(/^((<[^>]+>|\t)+)/gm, function(match, p1 /*..., offset, s*/) {
         return p1.replace(/\t/g, options.tabReplace);
       });
     }
@@ -494,28 +523,50 @@ var Highlight = function() {
     return value;
   }
 
+  function buildClassName(prevClassName, currentLang, resultLang) {
+    var language = currentLang ? aliases[currentLang] : resultLang,
+        result   = [prevClassName.trim()];
+
+    if (!prevClassName.match(/\bhljs\b/)) {
+      result.push('hljs');
+    }
+
+    if (prevClassName.indexOf(language) === -1) {
+      result.push(language);
+    }
+
+    return result.join(' ').trim();
+  }
+
   /*
   Applies highlighting to a DOM node containing code. Accepts a DOM node and
   two optional parameters for fixMarkup.
   */
   function highlightBlock(block) {
-    var text = options.useBR ? block.innerHTML
-      .replace(/\n/g,'').replace(/<br>|<br [^>]*>/g, '\n').replace(/<[^>]*>/g,'')
-      : block.textContent;
     var language = blockLanguage(block);
-    if (language == 'no-highlight')
+    if (/no(-?)highlight|plain|text/.test(language))
         return;
+
+    var node;
+    if (options.useBR) {
+      node = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+      node.innerHTML = block.innerHTML.replace(/\n/g, '').replace(/<br[ \/]*>/g, '\n');
+    } else {
+      node = block;
+    }
+    var text = node.textContent;
     var result = language ? highlight(language, text, true) : highlightAuto(text);
-    var original = nodeStream(block);
-    if (original.length) {
-      var pre = document.createElementNS('http://www.w3.org/1999/xhtml', 'pre');
-      pre.innerHTML = result.value;
-      result.value = mergeStreams(original, nodeStream(pre), text);
+
+    var originalStream = nodeStream(node);
+    if (originalStream.length) {
+      var resultNode = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+      resultNode.innerHTML = result.value;
+      result.value = mergeStreams(originalStream, nodeStream(resultNode), text);
     }
     result.value = fixMarkup(result.value);
 
     block.innerHTML = result.value;
-    block.className += ' hljs ' + (!language && result.language || '');
+    block.className = buildClassName(block.className, language, result.language);
     block.result = {
       language: result.language,
       re: result.relevance
@@ -566,7 +617,7 @@ var Highlight = function() {
   var aliases = {};
 
   function registerLanguage(name, language) {
-    var lang = languages[name] = language(this);
+    var lang = languages[name] = language(hljs);
     if (lang.aliases) {
       lang.aliases.forEach(function(alias) {aliases[alias] = name;});
     }
@@ -582,78 +633,78 @@ var Highlight = function() {
 
   /* Interface definition */
 
-  this.highlight = highlight;
-  this.highlightAuto = highlightAuto;
-  this.fixMarkup = fixMarkup;
-  this.highlightBlock = highlightBlock;
-  this.configure = configure;
-  this.initHighlighting = initHighlighting;
-  this.initHighlightingOnLoad = initHighlightingOnLoad;
-  this.registerLanguage = registerLanguage;
-  this.listLanguages = listLanguages;
-  this.getLanguage = getLanguage;
-  this.inherit = inherit;
+  hljs.highlight = highlight;
+  hljs.highlightAuto = highlightAuto;
+  hljs.fixMarkup = fixMarkup;
+  hljs.highlightBlock = highlightBlock;
+  hljs.configure = configure;
+  hljs.initHighlighting = initHighlighting;
+  hljs.initHighlightingOnLoad = initHighlightingOnLoad;
+  hljs.registerLanguage = registerLanguage;
+  hljs.listLanguages = listLanguages;
+  hljs.getLanguage = getLanguage;
+  hljs.inherit = inherit;
 
   // Common regexps
-  this.IDENT_RE = '[a-zA-Z][a-zA-Z0-9_]*';
-  this.UNDERSCORE_IDENT_RE = '[a-zA-Z_][a-zA-Z0-9_]*';
-  this.NUMBER_RE = '\\b\\d+(\\.\\d+)?';
-  this.C_NUMBER_RE = '(\\b0[xX][a-fA-F0-9]+|(\\b\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)'; // 0x..., 0..., decimal, float
-  this.BINARY_NUMBER_RE = '\\b(0b[01]+)'; // 0b...
-  this.RE_STARTERS_RE = '!|!=|!==|%|%=|&|&&|&=|\\*|\\*=|\\+|\\+=|,|-|-=|/=|/|:|;|<<|<<=|<=|<|===|==|=|>>>=|>>=|>=|>>>|>>|>|\\?|\\[|\\{|\\(|\\^|\\^=|\\||\\|=|\\|\\||~';
+  hljs.IDENT_RE = '[a-zA-Z]\\w*';
+  hljs.UNDERSCORE_IDENT_RE = '[a-zA-Z_]\\w*';
+  hljs.NUMBER_RE = '\\b\\d+(\\.\\d+)?';
+  hljs.C_NUMBER_RE = '\\b(0[xX][a-fA-F0-9]+|(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)'; // 0x..., 0..., decimal, float
+  hljs.BINARY_NUMBER_RE = '\\b(0b[01]+)'; // 0b...
+  hljs.RE_STARTERS_RE = '!|!=|!==|%|%=|&|&&|&=|\\*|\\*=|\\+|\\+=|,|-|-=|/=|/|:|;|<<|<<=|<=|<|===|==|=|>>>=|>>=|>=|>>>|>>|>|\\?|\\[|\\{|\\(|\\^|\\^=|\\||\\|=|\\|\\||~';
 
   // Common modes
-  this.BACKSLASH_ESCAPE = {
+  hljs.BACKSLASH_ESCAPE = {
     begin: '\\\\[\\s\\S]', relevance: 0
   };
-  this.APOS_STRING_MODE = {
+  hljs.APOS_STRING_MODE = {
     className: 'string',
     begin: '\'', end: '\'',
     illegal: '\\n',
-    contains: [this.BACKSLASH_ESCAPE]
+    contains: [hljs.BACKSLASH_ESCAPE]
   };
-  this.QUOTE_STRING_MODE = {
+  hljs.QUOTE_STRING_MODE = {
     className: 'string',
     begin: '"', end: '"',
     illegal: '\\n',
-    contains: [this.BACKSLASH_ESCAPE]
+    contains: [hljs.BACKSLASH_ESCAPE]
   };
-  this.PHRASAL_WORDS_MODE = {
+  hljs.PHRASAL_WORDS_MODE = {
     begin: /\b(a|an|the|are|I|I'm|isn't|don't|doesn't|won't|but|just|should|pretty|simply|enough|gonna|going|wtf|so|such)\b/
   };
-  this.C_LINE_COMMENT_MODE = {
-    className: 'comment',
-    begin: '//', end: '$',
-    contains: [this.PHRASAL_WORDS_MODE]
+  hljs.COMMENT = function (begin, end, inherits) {
+    var mode = hljs.inherit(
+      {
+        className: 'comment',
+        begin: begin, end: end,
+        contains: []
+      },
+      inherits || {}
+    );
+    mode.contains.push(hljs.PHRASAL_WORDS_MODE);
+    return mode;
   };
-  this.C_BLOCK_COMMENT_MODE = {
-    className: 'comment',
-    begin: '/\\*', end: '\\*/',
-    contains: [this.PHRASAL_WORDS_MODE]
-  };
-  this.HASH_COMMENT_MODE = {
-    className: 'comment',
-    begin: '#', end: '$',
-    contains: [this.PHRASAL_WORDS_MODE]
-  };
-  this.NUMBER_MODE = {
+  hljs.C_LINE_COMMENT_MODE = hljs.COMMENT('//', '$');
+  hljs.C_BLOCK_COMMENT_MODE = hljs.COMMENT('/\\*', '\\*/');
+  hljs.HASH_COMMENT_MODE = hljs.COMMENT('#', '$');
+  hljs.NUMBER_MODE = {
     className: 'number',
-    begin: this.NUMBER_RE,
+    begin: hljs.NUMBER_RE,
     relevance: 0
   };
-  this.C_NUMBER_MODE = {
+  hljs.C_NUMBER_MODE = {
     className: 'number',
-    begin: this.C_NUMBER_RE,
+    begin: hljs.C_NUMBER_RE,
     relevance: 0
   };
-  this.BINARY_NUMBER_MODE = {
+  hljs.BINARY_NUMBER_MODE = {
     className: 'number',
-    begin: this.BINARY_NUMBER_RE,
+    begin: hljs.BINARY_NUMBER_RE,
     relevance: 0
   };
-  this.CSS_NUMBER_MODE = {
+  hljs.CSS_NUMBER_MODE = {
     className: 'number',
-    begin: this.NUMBER_RE + '(' +
+    begin: hljs.NUMBER_RE + '(' +
       '%|em|ex|ch|rem'  +
       '|vw|vh|vmin|vmax' +
       '|cm|mm|in|pt|pc|px' +
@@ -664,122 +715,157 @@ var Highlight = function() {
       ')?',
     relevance: 0
   };
-  this.REGEXP_MODE = {
+  hljs.REGEXP_MODE = {
     className: 'regexp',
-    begin: /\//, end: /\/[gim]*/,
+    begin: /\//, end: /\/[gimuy]*/,
     illegal: /\n/,
     contains: [
-      this.BACKSLASH_ESCAPE,
+      hljs.BACKSLASH_ESCAPE,
       {
         begin: /\[/, end: /\]/,
         relevance: 0,
-        contains: [this.BACKSLASH_ESCAPE]
+        contains: [hljs.BACKSLASH_ESCAPE]
       }
     ]
   };
-  this.TITLE_MODE = {
+  hljs.TITLE_MODE = {
     className: 'title',
-    begin: this.IDENT_RE,
+    begin: hljs.IDENT_RE,
     relevance: 0
   };
-  this.UNDERSCORE_TITLE_MODE = {
+  hljs.UNDERSCORE_TITLE_MODE = {
     className: 'title',
-    begin: this.UNDERSCORE_IDENT_RE,
+    begin: hljs.UNDERSCORE_IDENT_RE,
     relevance: 0
   };
-};
-module.exports = Highlight;
+
+  return hljs;
+}));
+
 },{}],2:[function(require,module,exports){
-var Highlight = require('./highlight');
-var hljs = new Highlight();
-hljs.registerLanguage('bash', require('./languages/bash.js'));
-hljs.registerLanguage('fix', require('./languages/fix.js'));
-hljs.registerLanguage('nsis', require('./languages/nsis.js'));
-hljs.registerLanguage('haxe', require('./languages/haxe.js'));
-hljs.registerLanguage('erlang', require('./languages/erlang.js'));
-hljs.registerLanguage('cs', require('./languages/cs.js'));
-hljs.registerLanguage('protobuf', require('./languages/protobuf.js'));
-hljs.registerLanguage('vim', require('./languages/vim.js'));
-hljs.registerLanguage('brainfuck', require('./languages/brainfuck.js'));
-hljs.registerLanguage('ruby', require('./languages/ruby.js'));
-hljs.registerLanguage('nimrod', require('./languages/nimrod.js'));
-hljs.registerLanguage('rust', require('./languages/rust.js'));
-hljs.registerLanguage('ruleslanguage', require('./languages/ruleslanguage.js'));
-hljs.registerLanguage('rib', require('./languages/rib.js'));
-hljs.registerLanguage('diff', require('./languages/diff.js'));
-hljs.registerLanguage('haml', require('./languages/haml.js'));
-hljs.registerLanguage('javascript', require('./languages/javascript.js'));
-hljs.registerLanguage('glsl', require('./languages/glsl.js'));
-hljs.registerLanguage('rsl', require('./languages/rsl.js'));
-hljs.registerLanguage('lua', require('./languages/lua.js'));
-hljs.registerLanguage('xml', require('./languages/xml.js'));
-hljs.registerLanguage('markdown', require('./languages/markdown.js'));
-hljs.registerLanguage('css', require('./languages/css.js'));
-hljs.registerLanguage('capnproto', require('./languages/capnproto.js'));
-hljs.registerLanguage('lisp', require('./languages/lisp.js'));
-hljs.registerLanguage('profile', require('./languages/profile.js'));
-hljs.registerLanguage('http', require('./languages/http.js'));
-hljs.registerLanguage('java', require('./languages/java.js'));
-hljs.registerLanguage('gherkin', require('./languages/gherkin.js'));
-hljs.registerLanguage('fsharp', require('./languages/fsharp.js'));
-hljs.registerLanguage('mathematica', require('./languages/mathematica.js'));
-hljs.registerLanguage('swift', require('./languages/swift.js'));
-hljs.registerLanguage('php', require('./languages/php.js'));
-hljs.registerLanguage('haskell', require('./languages/haskell.js'));
-hljs.registerLanguage('1c', require('./languages/1c.js'));
-hljs.registerLanguage('x86asm', require('./languages/x86asm.js'));
-hljs.registerLanguage('python', require('./languages/python.js'));
-hljs.registerLanguage('smalltalk', require('./languages/smalltalk.js'));
-hljs.registerLanguage('tex', require('./languages/tex.js'));
-hljs.registerLanguage('actionscript', require('./languages/actionscript.js'));
-hljs.registerLanguage('sql', require('./languages/sql.js'));
-hljs.registerLanguage('nix', require('./languages/nix.js'));
-hljs.registerLanguage('handlebars', require('./languages/handlebars.js'));
-hljs.registerLanguage('thrift', require('./languages/thrift.js'));
-hljs.registerLanguage('vala', require('./languages/vala.js'));
-hljs.registerLanguage('gradle', require('./languages/gradle.js'));
-hljs.registerLanguage('ini', require('./languages/ini.js'));
-hljs.registerLanguage('livecodeserver', require('./languages/livecodeserver.js'));
-hljs.registerLanguage('d', require('./languages/d.js'));
-hljs.registerLanguage('vbnet', require('./languages/vbnet.js'));
-hljs.registerLanguage('axapta', require('./languages/axapta.js'));
-hljs.registerLanguage('perl', require('./languages/perl.js'));
-hljs.registerLanguage('scala', require('./languages/scala.js'));
-hljs.registerLanguage('cmake', require('./languages/cmake.js'));
-hljs.registerLanguage('ocaml', require('./languages/ocaml.js'));
-hljs.registerLanguage('autohotkey', require('./languages/autohotkey.js'));
-hljs.registerLanguage('objectivec', require('./languages/objectivec.js'));
-hljs.registerLanguage('avrasm', require('./languages/avrasm.js'));
-hljs.registerLanguage('vhdl', require('./languages/vhdl.js'));
-hljs.registerLanguage('coffeescript', require('./languages/coffeescript.js'));
-hljs.registerLanguage('mizar', require('./languages/mizar.js'));
-hljs.registerLanguage('nginx', require('./languages/nginx.js'));
-hljs.registerLanguage('erlang-repl', require('./languages/erlang-repl.js'));
-hljs.registerLanguage('r', require('./languages/r.js'));
-hljs.registerLanguage('json', require('./languages/json.js'));
-hljs.registerLanguage('django', require('./languages/django.js'));
-hljs.registerLanguage('delphi', require('./languages/delphi.js'));
-hljs.registerLanguage('vbscript', require('./languages/vbscript.js'));
-hljs.registerLanguage('oxygene', require('./languages/oxygene.js'));
-hljs.registerLanguage('mel', require('./languages/mel.js'));
-hljs.registerLanguage('dos', require('./languages/dos.js'));
-hljs.registerLanguage('apache', require('./languages/apache.js'));
-hljs.registerLanguage('scss', require('./languages/scss.js'));
-hljs.registerLanguage('monkey', require('./languages/monkey.js'));
-hljs.registerLanguage('applescript', require('./languages/applescript.js'));
-hljs.registerLanguage('lasso', require('./languages/lasso.js'));
-hljs.registerLanguage('cpp', require('./languages/cpp.js'));
-hljs.registerLanguage('matlab', require('./languages/matlab.js'));
-hljs.registerLanguage('scilab', require('./languages/scilab.js'));
-hljs.registerLanguage('makefile', require('./languages/makefile.js'));
-hljs.registerLanguage('asciidoc', require('./languages/asciidoc.js'));
-hljs.registerLanguage('parser3', require('./languages/parser3.js'));
-hljs.registerLanguage('clojure', require('./languages/clojure.js'));
-hljs.registerLanguage('elixir', require('./languages/elixir.js'));
-hljs.registerLanguage('typescript', require('./languages/typescript.js'));
-hljs.registerLanguage('go', require('./languages/go.js'));
+var hljs = require('./highlight');
+
+hljs.registerLanguage('1c', require('./languages/1c'));
+hljs.registerLanguage('actionscript', require('./languages/actionscript'));
+hljs.registerLanguage('apache', require('./languages/apache'));
+hljs.registerLanguage('applescript', require('./languages/applescript'));
+hljs.registerLanguage('xml', require('./languages/xml'));
+hljs.registerLanguage('asciidoc', require('./languages/asciidoc'));
+hljs.registerLanguage('aspectj', require('./languages/aspectj'));
+hljs.registerLanguage('autohotkey', require('./languages/autohotkey'));
+hljs.registerLanguage('avrasm', require('./languages/avrasm'));
+hljs.registerLanguage('axapta', require('./languages/axapta'));
+hljs.registerLanguage('bash', require('./languages/bash'));
+hljs.registerLanguage('brainfuck', require('./languages/brainfuck'));
+hljs.registerLanguage('capnproto', require('./languages/capnproto'));
+hljs.registerLanguage('clojure', require('./languages/clojure'));
+hljs.registerLanguage('clojure-repl', require('./languages/clojure-repl'));
+hljs.registerLanguage('cmake', require('./languages/cmake'));
+hljs.registerLanguage('coffeescript', require('./languages/coffeescript'));
+hljs.registerLanguage('cpp', require('./languages/cpp'));
+hljs.registerLanguage('cs', require('./languages/cs'));
+hljs.registerLanguage('css', require('./languages/css'));
+hljs.registerLanguage('d', require('./languages/d'));
+hljs.registerLanguage('markdown', require('./languages/markdown'));
+hljs.registerLanguage('dart', require('./languages/dart'));
+hljs.registerLanguage('delphi', require('./languages/delphi'));
+hljs.registerLanguage('diff', require('./languages/diff'));
+hljs.registerLanguage('django', require('./languages/django'));
+hljs.registerLanguage('dockerfile', require('./languages/dockerfile'));
+hljs.registerLanguage('dos', require('./languages/dos'));
+hljs.registerLanguage('dust', require('./languages/dust'));
+hljs.registerLanguage('elixir', require('./languages/elixir'));
+hljs.registerLanguage('ruby', require('./languages/ruby'));
+hljs.registerLanguage('erb', require('./languages/erb'));
+hljs.registerLanguage('erlang-repl', require('./languages/erlang-repl'));
+hljs.registerLanguage('erlang', require('./languages/erlang'));
+hljs.registerLanguage('fix', require('./languages/fix'));
+hljs.registerLanguage('fortran', require('./languages/fortran'));
+hljs.registerLanguage('fsharp', require('./languages/fsharp'));
+hljs.registerLanguage('gcode', require('./languages/gcode'));
+hljs.registerLanguage('gherkin', require('./languages/gherkin'));
+hljs.registerLanguage('glsl', require('./languages/glsl'));
+hljs.registerLanguage('go', require('./languages/go'));
+hljs.registerLanguage('gradle', require('./languages/gradle'));
+hljs.registerLanguage('groovy', require('./languages/groovy'));
+hljs.registerLanguage('haml', require('./languages/haml'));
+hljs.registerLanguage('handlebars', require('./languages/handlebars'));
+hljs.registerLanguage('haskell', require('./languages/haskell'));
+hljs.registerLanguage('haxe', require('./languages/haxe'));
+hljs.registerLanguage('http', require('./languages/http'));
+hljs.registerLanguage('ini', require('./languages/ini'));
+hljs.registerLanguage('java', require('./languages/java'));
+hljs.registerLanguage('javascript', require('./languages/javascript'));
+hljs.registerLanguage('json', require('./languages/json'));
+hljs.registerLanguage('julia', require('./languages/julia'));
+hljs.registerLanguage('kotlin', require('./languages/kotlin'));
+hljs.registerLanguage('lasso', require('./languages/lasso'));
+hljs.registerLanguage('less', require('./languages/less'));
+hljs.registerLanguage('lisp', require('./languages/lisp'));
+hljs.registerLanguage('livecodeserver', require('./languages/livecodeserver'));
+hljs.registerLanguage('livescript', require('./languages/livescript'));
+hljs.registerLanguage('lua', require('./languages/lua'));
+hljs.registerLanguage('makefile', require('./languages/makefile'));
+hljs.registerLanguage('mathematica', require('./languages/mathematica'));
+hljs.registerLanguage('matlab', require('./languages/matlab'));
+hljs.registerLanguage('mel', require('./languages/mel'));
+hljs.registerLanguage('mercury', require('./languages/mercury'));
+hljs.registerLanguage('mizar', require('./languages/mizar'));
+hljs.registerLanguage('monkey', require('./languages/monkey'));
+hljs.registerLanguage('nginx', require('./languages/nginx'));
+hljs.registerLanguage('nimrod', require('./languages/nimrod'));
+hljs.registerLanguage('nix', require('./languages/nix'));
+hljs.registerLanguage('nsis', require('./languages/nsis'));
+hljs.registerLanguage('objectivec', require('./languages/objectivec'));
+hljs.registerLanguage('ocaml', require('./languages/ocaml'));
+hljs.registerLanguage('oxygene', require('./languages/oxygene'));
+hljs.registerLanguage('parser3', require('./languages/parser3'));
+hljs.registerLanguage('perl', require('./languages/perl'));
+hljs.registerLanguage('pf', require('./languages/pf'));
+hljs.registerLanguage('php', require('./languages/php'));
+hljs.registerLanguage('powershell', require('./languages/powershell'));
+hljs.registerLanguage('processing', require('./languages/processing'));
+hljs.registerLanguage('profile', require('./languages/profile'));
+hljs.registerLanguage('prolog', require('./languages/prolog'));
+hljs.registerLanguage('protobuf', require('./languages/protobuf'));
+hljs.registerLanguage('puppet', require('./languages/puppet'));
+hljs.registerLanguage('python', require('./languages/python'));
+hljs.registerLanguage('q', require('./languages/q'));
+hljs.registerLanguage('r', require('./languages/r'));
+hljs.registerLanguage('rib', require('./languages/rib'));
+hljs.registerLanguage('roboconf', require('./languages/roboconf'));
+hljs.registerLanguage('rsl', require('./languages/rsl'));
+hljs.registerLanguage('ruleslanguage', require('./languages/ruleslanguage'));
+hljs.registerLanguage('rust', require('./languages/rust'));
+hljs.registerLanguage('scala', require('./languages/scala'));
+hljs.registerLanguage('scheme', require('./languages/scheme'));
+hljs.registerLanguage('scilab', require('./languages/scilab'));
+hljs.registerLanguage('scss', require('./languages/scss'));
+hljs.registerLanguage('smali', require('./languages/smali'));
+hljs.registerLanguage('smalltalk', require('./languages/smalltalk'));
+hljs.registerLanguage('sml', require('./languages/sml'));
+hljs.registerLanguage('sql', require('./languages/sql'));
+hljs.registerLanguage('stata', require('./languages/stata'));
+hljs.registerLanguage('step21', require('./languages/step21'));
+hljs.registerLanguage('stylus', require('./languages/stylus'));
+hljs.registerLanguage('swift', require('./languages/swift'));
+hljs.registerLanguage('tcl', require('./languages/tcl'));
+hljs.registerLanguage('tex', require('./languages/tex'));
+hljs.registerLanguage('thrift', require('./languages/thrift'));
+hljs.registerLanguage('twig', require('./languages/twig'));
+hljs.registerLanguage('typescript', require('./languages/typescript'));
+hljs.registerLanguage('vala', require('./languages/vala'));
+hljs.registerLanguage('vbnet', require('./languages/vbnet'));
+hljs.registerLanguage('vbscript', require('./languages/vbscript'));
+hljs.registerLanguage('vbscript-html', require('./languages/vbscript-html'));
+hljs.registerLanguage('verilog', require('./languages/verilog'));
+hljs.registerLanguage('vhdl', require('./languages/vhdl'));
+hljs.registerLanguage('vim', require('./languages/vim'));
+hljs.registerLanguage('x86asm', require('./languages/x86asm'));
+hljs.registerLanguage('xl', require('./languages/xl'));
+
 module.exports = hljs;
-},{"./highlight":1,"./languages/1c.js":3,"./languages/actionscript.js":4,"./languages/apache.js":5,"./languages/applescript.js":6,"./languages/asciidoc.js":7,"./languages/autohotkey.js":8,"./languages/avrasm.js":9,"./languages/axapta.js":10,"./languages/bash.js":11,"./languages/brainfuck.js":12,"./languages/capnproto.js":13,"./languages/clojure.js":14,"./languages/cmake.js":15,"./languages/coffeescript.js":16,"./languages/cpp.js":17,"./languages/cs.js":18,"./languages/css.js":19,"./languages/d.js":20,"./languages/delphi.js":21,"./languages/diff.js":22,"./languages/django.js":23,"./languages/dos.js":24,"./languages/elixir.js":25,"./languages/erlang-repl.js":26,"./languages/erlang.js":27,"./languages/fix.js":28,"./languages/fsharp.js":29,"./languages/gherkin.js":30,"./languages/glsl.js":31,"./languages/go.js":32,"./languages/gradle.js":33,"./languages/haml.js":34,"./languages/handlebars.js":35,"./languages/haskell.js":36,"./languages/haxe.js":37,"./languages/http.js":38,"./languages/ini.js":39,"./languages/java.js":40,"./languages/javascript.js":41,"./languages/json.js":42,"./languages/lasso.js":43,"./languages/lisp.js":44,"./languages/livecodeserver.js":45,"./languages/lua.js":46,"./languages/makefile.js":47,"./languages/markdown.js":48,"./languages/mathematica.js":49,"./languages/matlab.js":50,"./languages/mel.js":51,"./languages/mizar.js":52,"./languages/monkey.js":53,"./languages/nginx.js":54,"./languages/nimrod.js":55,"./languages/nix.js":56,"./languages/nsis.js":57,"./languages/objectivec.js":58,"./languages/ocaml.js":59,"./languages/oxygene.js":60,"./languages/parser3.js":61,"./languages/perl.js":62,"./languages/php.js":63,"./languages/profile.js":64,"./languages/protobuf.js":65,"./languages/python.js":66,"./languages/r.js":67,"./languages/rib.js":68,"./languages/rsl.js":69,"./languages/ruby.js":70,"./languages/ruleslanguage.js":71,"./languages/rust.js":72,"./languages/scala.js":73,"./languages/scilab.js":74,"./languages/scss.js":75,"./languages/smalltalk.js":76,"./languages/sql.js":77,"./languages/swift.js":78,"./languages/tex.js":79,"./languages/thrift.js":80,"./languages/typescript.js":81,"./languages/vala.js":82,"./languages/vbnet.js":83,"./languages/vbscript.js":84,"./languages/vhdl.js":85,"./languages/vim.js":86,"./languages/x86asm.js":87,"./languages/xml.js":88}],3:[function(require,module,exports){
+},{"./highlight":1,"./languages/1c":3,"./languages/actionscript":4,"./languages/apache":5,"./languages/applescript":6,"./languages/asciidoc":7,"./languages/aspectj":8,"./languages/autohotkey":9,"./languages/avrasm":10,"./languages/axapta":11,"./languages/bash":12,"./languages/brainfuck":13,"./languages/capnproto":14,"./languages/clojure":16,"./languages/clojure-repl":15,"./languages/cmake":17,"./languages/coffeescript":18,"./languages/cpp":19,"./languages/cs":20,"./languages/css":21,"./languages/d":22,"./languages/dart":23,"./languages/delphi":24,"./languages/diff":25,"./languages/django":26,"./languages/dockerfile":27,"./languages/dos":28,"./languages/dust":29,"./languages/elixir":30,"./languages/erb":31,"./languages/erlang":33,"./languages/erlang-repl":32,"./languages/fix":34,"./languages/fortran":35,"./languages/fsharp":36,"./languages/gcode":37,"./languages/gherkin":38,"./languages/glsl":39,"./languages/go":40,"./languages/gradle":41,"./languages/groovy":42,"./languages/haml":43,"./languages/handlebars":44,"./languages/haskell":45,"./languages/haxe":46,"./languages/http":47,"./languages/ini":48,"./languages/java":49,"./languages/javascript":50,"./languages/json":51,"./languages/julia":52,"./languages/kotlin":53,"./languages/lasso":54,"./languages/less":55,"./languages/lisp":56,"./languages/livecodeserver":57,"./languages/livescript":58,"./languages/lua":59,"./languages/makefile":60,"./languages/markdown":61,"./languages/mathematica":62,"./languages/matlab":63,"./languages/mel":64,"./languages/mercury":65,"./languages/mizar":66,"./languages/monkey":67,"./languages/nginx":68,"./languages/nimrod":69,"./languages/nix":70,"./languages/nsis":71,"./languages/objectivec":72,"./languages/ocaml":73,"./languages/oxygene":74,"./languages/parser3":75,"./languages/perl":76,"./languages/pf":77,"./languages/php":78,"./languages/powershell":79,"./languages/processing":80,"./languages/profile":81,"./languages/prolog":82,"./languages/protobuf":83,"./languages/puppet":84,"./languages/python":85,"./languages/q":86,"./languages/r":87,"./languages/rib":88,"./languages/roboconf":89,"./languages/rsl":90,"./languages/ruby":91,"./languages/ruleslanguage":92,"./languages/rust":93,"./languages/scala":94,"./languages/scheme":95,"./languages/scilab":96,"./languages/scss":97,"./languages/smali":98,"./languages/smalltalk":99,"./languages/sml":100,"./languages/sql":101,"./languages/stata":102,"./languages/step21":103,"./languages/stylus":104,"./languages/swift":105,"./languages/tcl":106,"./languages/tex":107,"./languages/thrift":108,"./languages/twig":109,"./languages/typescript":110,"./languages/vala":111,"./languages/vbnet":112,"./languages/vbscript":114,"./languages/vbscript-html":113,"./languages/verilog":115,"./languages/vhdl":116,"./languages/vim":117,"./languages/x86asm":118,"./languages/xl":119,"./languages/xml":120}],3:[function(require,module,exports){
 module.exports = function(hljs){
   var IDENT_RE_RU = '[a-zA-Zа-яА-Я][a-zA-Z0-9_а-яА-Я]*';
   var OneS_KEYWORDS = 'возврат дата для если и или иначе иначеесли исключение конецесли ' +
@@ -993,16 +1079,17 @@ module.exports = function(hljs) {
     begin: '\\(', end: '\\)',
     contains: ['self', hljs.C_NUMBER_MODE, STRING]
   };
+  var COMMENT_MODE_1 = hljs.COMMENT('--', '$');
+  var COMMENT_MODE_2 = hljs.COMMENT(
+    '\\(\\*',
+    '\\*\\)',
+    {
+      contains: ['self', COMMENT_MODE_1] //allow nesting
+    }
+  );
   var COMMENTS = [
-    {
-      className: 'comment',
-      begin: '--', end: '$'
-    },
-    {
-      className: 'comment',
-      begin: '\\(\\*', end: '\\*\\)',
-      contains: ['self', {begin: '--', end: '$'}] //allow nesting
-    },
+    COMMENT_MODE_1,
+    COMMENT_MODE_2,
     hljs.HASH_COMMENT_MODE
   ];
 
@@ -1078,30 +1165,33 @@ module.exports = function(hljs) {
         contains: [hljs.UNDERSCORE_TITLE_MODE, PARAMS]
       }
     ].concat(COMMENTS),
-    illegal: '//'
+    illegal: '//|->|=>'
   };
 };
 },{}],7:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
+    aliases: ['adoc'],
     contains: [
       // block comment
-      {
-        className: 'comment',
-        begin: '^/{4,}\\n',
-        end: '\\n/{4,}$',
+      hljs.COMMENT(
+        '^/{4,}\\n',
+        '\\n/{4,}$',
         // can also be done as...
-        //begin: '^/{4,}$',
-        //end: '^/{4,}$',
-        relevance: 10
-      },
+        //'^/{4,}$',
+        //'^/{4,}$',
+        {
+          relevance: 10
+        }
+      ),
       // line comment
-      {
-        className: 'comment',
-        begin: '^//',
-        end: '$',
-        relevance: 0
-      },
+      hljs.COMMENT(
+        '^//',
+        '$',
+        {
+          relevance: 0
+        }
+      ),
       // title
       {
         className: 'title',
@@ -1213,17 +1303,13 @@ module.exports = function(hljs) {
         end: '(\\n{2}|_)',
         relevance: 0
       },
-      // inline double smart quotes
+      // inline smart quotes
       {
         className: 'smartquote',
-        begin: "``.+?''",
-        relevance: 10
-      },
-      // inline single smart quotes
-      {
-        className: 'smartquote',
-        begin: "`.+?'",
-        relevance: 10
+        variants: [
+          {begin: "``.+?''"},
+          {begin: "`.+?'"}
+        ]
       },
       // inline code snippets (TODO should get same treatment as strong and emphasis)
       {
@@ -1275,16 +1361,154 @@ module.exports = function(hljs) {
   };
 };
 },{}],8:[function(require,module,exports){
+module.exports = function (hljs) {
+  var KEYWORDS =
+    'false synchronized int abstract float private char boolean static null if const ' +
+    'for true while long throw strictfp finally protected import native final return void ' +
+    'enum else extends implements break transient new catch instanceof byte super volatile case ' +
+    'assert short package default double public try this switch continue throws privileged ' +
+    'aspectOf adviceexecution proceed cflowbelow cflow initialization preinitialization ' +
+    'staticinitialization withincode target within execution getWithinTypeName handler ' +
+    'thisJoinPoint thisJoinPointStaticPart thisEnclosingJoinPointStaticPart declare parents '+
+    'warning error soft precedence thisAspectInstance';
+  var SHORTKEYS = 'get set args call';
+  return {
+    keywords : KEYWORDS,
+    illegal : /<\//,
+    contains : [
+      {
+        className : 'javadoc',
+        begin : '/\\*\\*',
+        end : '\\*/',
+        relevance : 0,
+        contains : [{
+          className : 'javadoctag',
+          begin : '(^|\\s)@[A-Za-z]+'
+        }]
+      },
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE,
+      hljs.APOS_STRING_MODE,
+      hljs.QUOTE_STRING_MODE,
+      {
+        className : 'aspect',
+        beginKeywords : 'aspect',
+        end : /[{;=]/,
+        excludeEnd : true,
+        illegal : /[:;"\[\]]/,
+        contains : [{
+            beginKeywords : 'extends implements pertypewithin perthis pertarget percflowbelow percflow issingleton'
+          },
+          hljs.UNDERSCORE_TITLE_MODE,
+          {
+            begin : /\([^\)]*/,
+            end : /[)]+/,
+            keywords : KEYWORDS + ' ' + SHORTKEYS,
+            excludeEnd : false
+          }
+        ]
+      },
+      {
+        className : 'class',
+        beginKeywords : 'class interface',
+        end : /[{;=]/,
+        excludeEnd : true,
+        relevance: 0,
+        keywords : 'class interface',
+        illegal : /[:"\[\]]/,
+        contains : [
+          {beginKeywords : 'extends implements'},
+          hljs.UNDERSCORE_TITLE_MODE
+        ]
+      },
+      {
+        // AspectJ Constructs
+        beginKeywords : 'pointcut after before around throwing returning',
+        end : /[)]/,
+        excludeEnd : false,
+        illegal : /["\[\]]/,
+        contains : [
+          {
+            begin : hljs.UNDERSCORE_IDENT_RE + '\\s*\\(',
+            returnBegin : true,
+            contains : [hljs.UNDERSCORE_TITLE_MODE]
+          }
+        ]
+      },
+      {
+        begin : /[:]/,
+        returnBegin : true,
+        end : /[{;]/,
+        relevance: 0,
+        excludeEnd : false,
+        keywords : KEYWORDS,
+        illegal : /["\[\]]/,
+        contains : [
+          {
+            begin : hljs.UNDERSCORE_IDENT_RE + '\\s*\\(',
+            keywords : KEYWORDS + ' ' + SHORTKEYS
+          },
+          hljs.QUOTE_STRING_MODE
+        ]
+      },
+      {
+        // this prevents 'new Name(...), or throw ...' from being recognized as a function definition
+        beginKeywords : 'new throw',
+        relevance : 0
+      },
+      {
+        // the function class is a bit different for AspectJ compared to the Java language
+        className : 'function',
+        begin : /\w+ +\w+(\.)?\w+\s*\([^\)]*\)\s*((throws)[\w\s,]+)?[\{;]/,
+        returnBegin : true,
+        end : /[{;=]/,
+        keywords : KEYWORDS,
+        excludeEnd : true,
+        contains : [
+          {
+            begin : hljs.UNDERSCORE_IDENT_RE + '\\s*\\(',
+            returnBegin : true,
+            relevance: 0,
+            contains : [hljs.UNDERSCORE_TITLE_MODE]
+          },
+          {
+            className : 'params',
+            begin : /\(/, end : /\)/,
+            relevance: 0,
+            keywords : KEYWORDS,
+            contains : [
+              hljs.APOS_STRING_MODE,
+              hljs.QUOTE_STRING_MODE,
+              hljs.C_NUMBER_MODE,
+              hljs.C_BLOCK_COMMENT_MODE
+            ]
+          },
+          hljs.C_LINE_COMMENT_MODE,
+          hljs.C_BLOCK_COMMENT_MODE
+        ]
+      },
+      hljs.C_NUMBER_MODE,
+      {
+        // annotation is also used in this language
+        className : 'annotation',
+        begin : '@[A-Za-z]+'
+      }
+    ]
+  };
+};
+},{}],9:[function(require,module,exports){
 module.exports = function(hljs) {
   var BACKTICK_ESCAPE = {
     className: 'escape',
     begin: '`[\\s\\S]'
   };
-  var COMMENTS = {
-    className: 'comment',
-    begin: ';', end: '$',
-    relevance: 0
-  };
+  var COMMENTS = hljs.COMMENT(
+    ';',
+    '$',
+    {
+      relevance: 0
+    }
+  );
   var BUILT_IN = [
     {
       className: 'built_in',
@@ -1334,7 +1558,7 @@ module.exports = function(hljs) {
     ])
   }
 };
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     case_insensitive: true,
@@ -1368,7 +1592,13 @@ module.exports = function(hljs) {
     },
     contains: [
       hljs.C_BLOCK_COMMENT_MODE,
-      {className: 'comment', begin: ';',  end: '$', relevance: 0},
+      hljs.COMMENT(
+        ';',
+        '$',
+        {
+          relevance: 0
+        }
+      ),
       hljs.C_NUMBER_MODE, // 0x..., decimal, float
       hljs.BINARY_NUMBER_MODE, // 0b...
       {
@@ -1390,7 +1620,7 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     keywords: 'false int abstract private char boolean static null if for true ' +
@@ -1414,24 +1644,20 @@ module.exports = function(hljs) {
         beginKeywords: 'class interface', end: '{', excludeEnd: true,
         illegal: ':',
         contains: [
-          {
-            className: 'inheritance',
-            beginKeywords: 'extends implements',
-            relevance: 10
-          },
+          {beginKeywords: 'extends implements'},
           hljs.UNDERSCORE_TITLE_MODE
         ]
       }
     ]
   };
 };
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 module.exports = function(hljs) {
   var VAR = {
     className: 'variable',
     variants: [
       {begin: /\$[\w\d#@][\w\d_]*/},
-      {begin: /\$\{(.*?)\}/}
+      {begin: /\$\{(.*?)}/}
     ]
   };
   var QUOTE_STRING = {
@@ -1457,13 +1683,26 @@ module.exports = function(hljs) {
     lexemes: /-?[a-z\.]+/,
     keywords: {
       keyword:
-        'if then else elif fi for break continue while in do done exit return set '+
-        'declare case esac export exec',
+        'if then else elif fi for while in do done case esac function',
       literal:
         'true false',
       built_in:
-        'printf echo read cd pwd pushd popd dirs let eval unset typeset readonly '+
-        'getopts source shopt caller type hash bind help sudo',
+        // Shell built-ins
+        // http://www.gnu.org/software/bash/manual/html_node/Shell-Builtin-Commands.html
+        'break cd continue eval exec exit export getopts hash pwd readonly return shift test times ' +
+        'trap umask unset ' +
+        // Bash built-ins
+        'alias bind builtin caller command declare echo enable help let local logout mapfile printf ' +
+        'read readarray source type typeset ulimit unalias ' +
+        // Shell modifiers
+        'set shopt ' +
+        // Zsh built-ins
+        'autoload bg bindkey bye cap chdir clone comparguments compcall compctl compdescribe compfiles ' +
+        'compgroups compquote comptags comptry compvalues dirs disable disown echotc echoti emulate ' +
+        'fc fg float functions getcap getln history integer jobs kill limit log noglob popd print ' +
+        'pushd pushln rehash sched setcap setopt stat suspend ttyctl unfunction unhash unlimit ' +
+        'unsetopt vared wait whence where which zcompile zformat zftp zle zmodload zparseopts zprof ' +
+        'zpty zregexparse zsocket zstyle ztcp',
       operator:
         '-ne -eq -lt -gt -f -d -e -s -l -a' // relevance booster
     },
@@ -1488,7 +1727,7 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 module.exports = function(hljs){
   var LITERAL = {
     className: 'literal',
@@ -1498,13 +1737,14 @@ module.exports = function(hljs){
   return {
     aliases: ['bf'],
     contains: [
-      {
-        className: 'comment',
-        begin: '[^\\[\\]\\.,\\+\\-<> \r\n]',
-        returnEnd: true,
-        end: '[\\[\\]\\.,\\+\\-<> \r\n]',
-        relevance: 0
-      },
+      hljs.COMMENT(
+        '[^\\[\\]\\.,\\+\\-<> \r\n]',
+        '[\\[\\]\\.,\\+\\-<> \r\n]',
+        {
+          returnEnd: true,
+          relevance: 0
+        }
+      ),
       {
         className: 'title',
         begin: '[\\[\\]]',
@@ -1524,7 +1764,7 @@ module.exports = function(hljs){
     ]
   };
 };
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     aliases: ['capnp'],
@@ -1573,12 +1813,27 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
+module.exports = function(hljs) {
+  return {
+    contains: [
+      {
+        className: 'prompt',
+        begin: /^([\w.-]+|\s*#_)=>/,
+        starts: {
+          end: /$/,
+          subLanguage: 'clojure', subLanguageMode: 'continuous'
+        }
+      }
+    ]
+  }
+};
+},{}],16:[function(require,module,exports){
 module.exports = function(hljs) {
   var keywords = {
     built_in:
       // Clojure keywords
-      'def cond apply if-not if-let if not not= = &lt; < > &lt;= <= >= == + / * - rem '+
+      'def cond apply if-not if-let if not not= = < > <= >= == + / * - rem '+
       'quot neg? pos? delay? symbol? keyword? true? false? integer? empty? coll? list? '+
       'set? ifn? fn? associative? sequential? sorted? counted? reversible? number? decimal? '+
       'class? distinct? isa? float? rational? reduced? ratio? odd? even? char? seq? vector? '+
@@ -1607,18 +1862,29 @@ module.exports = function(hljs) {
       'lazy-seq spread list* str find-keyword keyword symbol gensym force rationalize'
    };
 
-  var CLJ_IDENT_RE = '[a-zA-Z_0-9\\!\\.\\?\\-\\+\\*\\/\\<\\=\\>\\&\\#\\$\';]+';
-  var SIMPLE_NUMBER_RE = '[\\s:\\(\\{]+\\d+(\\.\\d+)?';
+  var SYMBOLSTART = 'a-zA-Z_\\-!.?+*=<>&#\'';
+  var SYMBOL_RE = '[' + SYMBOLSTART + '][' + SYMBOLSTART + '0-9/;:]*';
+  var SIMPLE_NUMBER_RE = '[-+]?\\d+(\\.\\d+)?';
 
+  var SYMBOL = {
+    begin: SYMBOL_RE,
+    relevance: 0
+  };
   var NUMBER = {
     className: 'number', begin: SIMPLE_NUMBER_RE,
     relevance: 0
   };
   var STRING = hljs.inherit(hljs.QUOTE_STRING_MODE, {illegal: null});
-  var COMMENT = {
-    className: 'comment',
-    begin: ';', end: '$',
-    relevance: 0
+  var COMMENT = hljs.COMMENT(
+    ';',
+    '$',
+    {
+      relevance: 0
+    }
+  );
+  var LITERAL = {
+    className: 'literal',
+    begin: /\b(true|false|nil)\b/
   };
   var COLLECTION = {
     className: 'collection',
@@ -1626,16 +1892,12 @@ module.exports = function(hljs) {
   };
   var HINT = {
     className: 'comment',
-    begin: '\\^' + CLJ_IDENT_RE
+    begin: '\\^' + SYMBOL_RE
   };
-  var HINT_COL = {
-    className: 'comment',
-    begin: '\\^\\{', end: '\\}'
-
-  };
+  var HINT_COL = hljs.COMMENT('\\^\\{', '\\}');
   var KEY = {
     className: 'attribute',
-    begin: '[:]' + CLJ_IDENT_RE
+    begin: '[:]' + SYMBOL_RE
   };
   var LIST = {
     className: 'list',
@@ -1643,35 +1905,27 @@ module.exports = function(hljs) {
   };
   var BODY = {
     endsWithParent: true,
-    keywords: {literal: 'true false nil'},
     relevance: 0
   };
-  var TITLE = {
+  var NAME = {
     keywords: keywords,
-    lexemes: CLJ_IDENT_RE,
-    className: 'title', begin: CLJ_IDENT_RE,
+    lexemes: SYMBOL_RE,
+    className: 'keyword', begin: SYMBOL_RE,
     starts: BODY
   };
+  var DEFAULT_CONTAINS = [LIST, STRING, HINT, HINT_COL, COMMENT, KEY, COLLECTION, NUMBER, LITERAL, SYMBOL];
 
-  LIST.contains = [{className: 'comment', begin: 'comment'}, TITLE, BODY];
-  BODY.contains = [LIST, STRING, HINT, HINT_COL, COMMENT, KEY, COLLECTION, NUMBER];
-  COLLECTION.contains = [LIST, STRING, HINT, COMMENT, KEY, COLLECTION, NUMBER];
+  LIST.contains = [hljs.COMMENT('comment', ''), NAME, BODY];
+  BODY.contains = DEFAULT_CONTAINS;
+  COLLECTION.contains = DEFAULT_CONTAINS;
 
   return {
     aliases: ['clj'],
     illegal: /\S/,
-    contains: [
-      COMMENT,
-      LIST,
-      {
-        className: 'prompt',
-        begin: /^=> /,
-        starts: {end: /\n\n|\Z/} // eat up prompt output to not interfere with the illegal
-      }
-    ]
+    contains: [LIST, STRING, HINT, HINT_COL, COMMENT, KEY, COLLECTION, NUMBER, LITERAL]
   }
 };
-},{}],15:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     aliases: ['cmake.in'],
@@ -1710,7 +1964,7 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],16:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 module.exports = function(hljs) {
   var KEYWORDS = {
     keyword:
@@ -1731,7 +1985,6 @@ module.exports = function(hljs) {
       'npm require console print module global window document'
   };
   var JS_IDENT_RE = '[A-Za-z$_][0-9A-Za-z$_]*';
-  var TITLE = hljs.inherit(hljs.TITLE_MODE, {begin: JS_IDENT_RE});
   var SUBST = {
     className: 'subst',
     begin: /#\{/, end: /}/,
@@ -1773,7 +2026,9 @@ module.exports = function(hljs) {
           relevance: 0
         },
         {
-          begin: '/\\S(\\\\.|[^\\n])*?/[gim]*(?=\\s|\\W|$)' // \S is required to parse x / 2 / 3 as two divisions
+          // regex can't start with space to parse x / 2 / 3 as two divisions
+          // regex can't start with *, and it supports an "illegal" in the main mode
+          begin: /\/(?![ *])(\\\/|.)*?\/[gim]*(?=\W|$)/
         }
       ]
     },
@@ -1789,31 +2044,43 @@ module.exports = function(hljs) {
   ];
   SUBST.contains = EXPRESSIONS;
 
+  var TITLE = hljs.inherit(hljs.TITLE_MODE, {begin: JS_IDENT_RE});
+  var PARAMS_RE = '(\\(.*\\))?\\s*\\B[-=]>';
+  var PARAMS = {
+    className: 'params',
+    begin: '\\([^\\(]', returnBegin: true,
+    /* We need another contained nameless mode to not have every nested
+    pair of parens to be called "params" */
+    contains: [{
+      begin: /\(/, end: /\)/,
+      keywords: KEYWORDS,
+      contains: ['self'].concat(EXPRESSIONS)
+    }]
+  };
+
   return {
     aliases: ['coffee', 'cson', 'iced'],
     keywords: KEYWORDS,
+    illegal: /\/\*/,
     contains: EXPRESSIONS.concat([
-      {
-        className: 'comment',
-        begin: '###', end: '###'
-      },
+      hljs.COMMENT('###', '###'),
       hljs.HASH_COMMENT_MODE,
       {
         className: 'function',
-        begin: '(' + JS_IDENT_RE + '\\s*=\\s*)?(\\(.*\\))?\\s*\\B[-=]>', end: '[-=]>',
+        begin: '^\\s*' + JS_IDENT_RE + '\\s*=\\s*' + PARAMS_RE, end: '[-=]>',
         returnBegin: true,
+        contains: [TITLE, PARAMS]
+      },
+      {
+        // anonymous function start
+        begin: /[:\(,=]\s*/,
+        relevance: 0,
         contains: [
-          TITLE,
           {
-            className: 'params',
-            begin: '\\(', returnBegin: true,
-            /* We need another contained nameless mode to not have every nested
-            pair of parens to be called "params" */
-            contains: [{
-              begin: /\(/, end: /\)/,
-              keywords: KEYWORDS,
-              contains: ['self'].concat(EXPRESSIONS)
-            }]
+            className: 'function',
+            begin: PARAMS_RE, end: '[-=]>',
+            returnBegin: true,
+            contains: [PARAMS]
           }
         ]
       },
@@ -1835,22 +2102,32 @@ module.exports = function(hljs) {
       {
         className: 'attribute',
         begin: JS_IDENT_RE + ':', end: ':',
-        returnBegin: true, excludeEnd: true,
+        returnBegin: true, returnEnd: true,
         relevance: 0
       }
     ])
   };
 };
-},{}],17:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 module.exports = function(hljs) {
   var CPP_KEYWORDS = {
     keyword: 'false int float while private char catch export virtual operator sizeof ' +
       'dynamic_cast|10 typedef const_cast|10 const struct for static_cast|10 union namespace ' +
-      'unsigned long throw volatile static protected bool template mutable if public friend ' +
-      'do return goto auto void enum else break new extern using true class asm case typeid ' +
+      'unsigned long volatile static protected bool template mutable if public friend ' +
+      'do goto auto void enum else break extern using true class asm case typeid ' +
       'short reinterpret_cast|10 default double register explicit signed typename try this ' +
       'switch continue wchar_t inline delete alignof char16_t char32_t constexpr decltype ' +
-      'noexcept nullptr static_assert thread_local restrict _Bool complex _Complex _Imaginary',
+      'noexcept nullptr static_assert thread_local restrict _Bool complex _Complex _Imaginary ' +
+      'intmax_t uintmax_t int8_t uint8_t int16_t uint16_t int32_t uint32_t  int64_t uint64_t ' +
+      'int_least8_t uint_least8_t int_least16_t uint_least16_t int_least32_t uint_least32_t ' +
+      'int_least64_t uint_least64_t int_fast8_t uint_fast8_t int_fast16_t uint_fast16_t int_fast32_t ' +
+      'uint_fast32_t int_fast64_t uint_fast64_t intptr_t uintptr_t atomic_bool atomic_char atomic_schar ' +
+      'atomic_uchar atomic_short atomic_ushort atomic_int atomic_uint atomic_long atomic_ulong atomic_llong ' +
+      'atomic_ullong atomic_wchar_t atomic_char16_t atomic_char32_t atomic_intmax_t atomic_uintmax_t ' +
+      'atomic_intptr_t atomic_uintptr_t atomic_size_t atomic_ptrdiff_t atomic_int_least8_t atomic_int_least16_t ' +
+      'atomic_int_least32_t atomic_int_least64_t atomic_uint_least8_t atomic_uint_least16_t atomic_uint_least32_t ' +
+      'atomic_uint_least64_t atomic_int_fast8_t atomic_int_fast16_t atomic_int_fast32_t atomic_int_fast64_t ' +
+      'atomic_uint_fast8_t atomic_uint_fast16_t atomic_uint_fast32_t atomic_uint_fast64_t',
     built_in: 'std string cin cout cerr clog stringstream istringstream ostringstream ' +
       'auto_ptr deque list queue stack vector map set bitset multiset multimap unordered_set ' +
       'unordered_map unordered_multiset unordered_multimap array shared_ptr abort abs acos ' +
@@ -1862,7 +2139,7 @@ module.exports = function(hljs) {
       'vfprintf vprintf vsprintf'
   };
   return {
-    aliases: ['c', 'h', 'c++', 'h++'],
+    aliases: ['c', 'cc', 'h', 'c++', 'h++', 'hpp'],
     keywords: CPP_KEYWORDS,
     illegal: '</',
     contains: [
@@ -1885,6 +2162,9 @@ module.exports = function(hljs) {
         keywords: 'if else elif endif define undef warning error line pragma',
         contains: [
           {
+            begin: /\\\n/, relevance: 0
+          },
+          {
             begin: 'include\\s*[<"]', end: '[>"]',
             keywords: 'include',
             illegal: '\\n'
@@ -1893,55 +2173,90 @@ module.exports = function(hljs) {
         ]
       },
       {
-        className: 'stl_container',
         begin: '\\b(deque|list|queue|stack|vector|map|set|bitset|multiset|multimap|unordered_map|unordered_set|unordered_multiset|unordered_multimap|array)\\s*<', end: '>',
         keywords: CPP_KEYWORDS,
         contains: ['self']
       },
       {
-        begin: hljs.IDENT_RE + '::'
+        begin: hljs.IDENT_RE + '::',
+        keywords: CPP_KEYWORDS
+      },
+      {
+        // Expression keywords prevent 'keyword Name(...) or else if(...)' from
+        // being recognized as a function definition
+        beginKeywords: 'new throw return else',
+        relevance: 0
+      },
+      {
+        className: 'function',
+        begin: '(' + hljs.IDENT_RE + '\\s+)+' + hljs.IDENT_RE + '\\s*\\(', returnBegin: true, end: /[{;=]/,
+        excludeEnd: true,
+        keywords: CPP_KEYWORDS,
+        contains: [
+          {
+            begin: hljs.IDENT_RE + '\\s*\\(', returnBegin: true,
+            contains: [hljs.TITLE_MODE],
+            relevance: 0
+          },
+          {
+            className: 'params',
+            begin: /\(/, end: /\)/,
+            keywords: CPP_KEYWORDS,
+            relevance: 0,
+            contains: [
+              hljs.C_BLOCK_COMMENT_MODE
+            ]
+          },
+          hljs.C_LINE_COMMENT_MODE,
+          hljs.C_BLOCK_COMMENT_MODE
+        ]
       }
     ]
   };
 };
-},{}],18:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 module.exports = function(hljs) {
   var KEYWORDS =
     // Normal keywords.
-    'abstract as base bool break byte case catch char checked const continue decimal ' +
+    'abstract as base bool break byte case catch char checked const continue decimal dynamic ' +
     'default delegate do double else enum event explicit extern false finally fixed float ' +
-    'for foreach goto if implicit in int interface internal is lock long new null ' +
-    'object operator out override params private protected public readonly ref return sbyte ' +
-    'sealed short sizeof stackalloc static string struct switch this throw true try typeof ' +
-    'uint ulong unchecked unsafe ushort using virtual volatile void while async await ' +
+    'for foreach goto if implicit in int interface internal is lock long null when ' +
+    'object operator out override params private protected public readonly ref sbyte ' +
+    'sealed short sizeof stackalloc static string struct switch this true try typeof ' +
+    'uint ulong unchecked unsafe ushort using virtual volatile void while async ' +
+    'protected public private internal ' +
     // Contextual keywords.
     'ascending descending from get group into join let orderby partial select set value var ' +
     'where yield';
+  var GENERIC_IDENT_RE = hljs.IDENT_RE + '(<' + hljs.IDENT_RE + '>)?';
   return {
     aliases: ['csharp'],
     keywords: KEYWORDS,
     illegal: /::/,
     contains: [
-      {
-        className: 'comment',
-        begin: '///', end: '$', returnBegin: true,
-        contains: [
-          {
-            className: 'xmlDocTag',
-            variants: [
-              {
-                begin: '///', relevance: 0
-              },
-              {
-                begin: '<!--|-->'
-              },
-              {
-                begin: '</?', end: '>'
-              }
-            ]
-          }
-        ]
-      },
+      hljs.COMMENT(
+        '///',
+        '$',
+        {
+          returnBegin: true,
+          contains: [
+            {
+              className: 'xmlDocTag',
+              variants: [
+                {
+                  begin: '///', relevance: 0
+                },
+                {
+                  begin: '<!--|-->'
+                },
+                {
+                  begin: '</?', end: '>'
+                }
+              ]
+            }
+          ]
+        }
+      ),
       hljs.C_LINE_COMMENT_MODE,
       hljs.C_BLOCK_COMMENT_MODE,
       {
@@ -1958,56 +2273,109 @@ module.exports = function(hljs) {
       hljs.QUOTE_STRING_MODE,
       hljs.C_NUMBER_MODE,
       {
-        beginKeywords: 'protected public private internal', end: /[{;=]/,
+        beginKeywords: 'class namespace interface', end: /[{;=]/,
+        illegal: /[^\s:]/,
+        contains: [
+          hljs.TITLE_MODE,
+          hljs.C_LINE_COMMENT_MODE,
+          hljs.C_BLOCK_COMMENT_MODE
+        ]
+      },
+      {
+        // Expression keywords prevent 'keyword Name(...)' from being
+        // recognized as a function definition
+        beginKeywords: 'new return throw await',
+        relevance: 0
+      },
+      {
+        className: 'function',
+        begin: '(' + GENERIC_IDENT_RE + '\\s+)+' + hljs.IDENT_RE + '\\s*\\(', returnBegin: true, end: /[{;=]/,
+        excludeEnd: true,
         keywords: KEYWORDS,
         contains: [
           {
-            beginKeywords: 'class namespace interface',
-            starts: {
-              contains: [hljs.TITLE_MODE]
-            }
+            begin: hljs.IDENT_RE + '\\s*\\(', returnBegin: true,
+            contains: [hljs.TITLE_MODE],
+            relevance: 0
           },
           {
-            begin: hljs.IDENT_RE + '\\s*\\(', returnBegin: true,
+            className: 'params',
+            begin: /\(/, end: /\)/,
+            keywords: KEYWORDS,
+            relevance: 0,
             contains: [
-              hljs.TITLE_MODE
+              hljs.APOS_STRING_MODE,
+              hljs.QUOTE_STRING_MODE,
+              hljs.C_NUMBER_MODE,
+              hljs.C_BLOCK_COMMENT_MODE
             ]
-          }
+          },
+          hljs.C_LINE_COMMENT_MODE,
+          hljs.C_BLOCK_COMMENT_MODE
         ]
       }
     ]
   };
 };
-},{}],19:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 module.exports = function(hljs) {
   var IDENT_RE = '[a-zA-Z-][a-zA-Z0-9_-]*';
   var FUNCTION = {
     className: 'function',
-    begin: IDENT_RE + '\\(', 
+    begin: IDENT_RE + '\\(',
     returnBegin: true,
     excludeEnd: true,
     end: '\\('
   };
+  var RULE = {
+    className: 'rule',
+    begin: /[A-Z\_\.\-]+\s*:/, returnBegin: true, end: ';', endsWithParent: true,
+    contains: [
+      {
+        className: 'attribute',
+        begin: /\S/, end: ':', excludeEnd: true,
+        starts: {
+          className: 'value',
+          endsWithParent: true, excludeEnd: true,
+          contains: [
+            FUNCTION,
+            hljs.CSS_NUMBER_MODE,
+            hljs.QUOTE_STRING_MODE,
+            hljs.APOS_STRING_MODE,
+            hljs.C_BLOCK_COMMENT_MODE,
+            {
+              className: 'hexcolor', begin: '#[0-9A-Fa-f]+'
+            },
+            {
+              className: 'important', begin: '!important'
+            }
+          ]
+        }
+      }
+    ]
+  };
+
   return {
     case_insensitive: true,
-    illegal: '[=/|\']',
+    illegal: /[=\/|']/,
     contains: [
       hljs.C_BLOCK_COMMENT_MODE,
+      RULE,
       {
-        className: 'id', begin: '\\#[A-Za-z0-9_-]+'
+        className: 'id', begin: /\#[A-Za-z0-9_-]+/
       },
       {
-        className: 'class', begin: '\\.[A-Za-z0-9_-]+',
+        className: 'class', begin: /\.[A-Za-z0-9_-]+/,
         relevance: 0
       },
       {
         className: 'attr_selector',
-        begin: '\\[', end: '\\]',
+        begin: /\[/, end: /\]/,
         illegal: '$'
       },
       {
         className: 'pseudo',
-        begin: ':(:)?[a-zA-Z0-9\\_\\-\\+\\(\\)\\"\\\']+'
+        begin: /:(:)?[a-zA-Z0-9\_\-\+\(\)"']+/
       },
       {
         className: 'at_rule',
@@ -2044,45 +2412,17 @@ module.exports = function(hljs) {
       {
         className: 'rules',
         begin: '{', end: '}',
-        illegal: '[^\\s]',
+        illegal: /\S/,
         relevance: 0,
         contains: [
           hljs.C_BLOCK_COMMENT_MODE,
-          {
-            className: 'rule',
-            begin: '[^\\s]', returnBegin: true, end: ';', endsWithParent: true,
-            contains: [
-              {
-                className: 'attribute',
-                begin: '[A-Z\\_\\.\\-]+', end: ':',
-                excludeEnd: true,
-                illegal: '[^\\s]',
-                starts: {
-                  className: 'value',
-                  endsWithParent: true, excludeEnd: true,
-                  contains: [
-                    FUNCTION,
-                    hljs.CSS_NUMBER_MODE,
-                    hljs.QUOTE_STRING_MODE,
-                    hljs.APOS_STRING_MODE,
-                    hljs.C_BLOCK_COMMENT_MODE,
-                    {
-                      className: 'hexcolor', begin: '#[0-9A-Fa-f]+'
-                    },
-                    {
-                      className: 'important', begin: '!important'
-                    }
-                  ]
-                }
-              }
-            ]
-          }
+          RULE,
         ]
       }
     ]
   };
 };
-},{}],20:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 module.exports = /**
  * Known issues:
  *
@@ -2310,13 +2650,14 @@ function(hljs) {
    *
    * @type {Object}
    */
-  var D_NESTING_COMMENT_MODE = {
-    className: 'comment',
-    begin: '\\/\\+',
-    contains: ['self'],
-    end: '\\+\\/',
-    relevance: 10
-  };
+  var D_NESTING_COMMENT_MODE = hljs.COMMENT(
+    '\\/\\+',
+    '\\+\\/',
+    {
+      contains: ['self'],
+      relevance: 10
+    }
+  );
 
   return {
     lexemes: hljs.UNDERSCORE_IDENT_RE,
@@ -2339,7 +2680,106 @@ function(hljs) {
     ]
   };
 };
-},{}],21:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
+module.exports = function (hljs) {
+  var SUBST = {
+    className: 'subst',
+    begin: '\\$\\{', end: '}',
+    keywords: 'true false null this is new super'
+  };
+
+  var STRING = {
+    className: 'string',
+    variants: [
+      {
+        begin: 'r\'\'\'', end: '\'\'\''
+      },
+      {
+        begin: 'r"""', end: '"""'
+      },
+      {
+        begin: 'r\'', end: '\'',
+        illegal: '\\n'
+      },
+      {
+        begin: 'r"', end: '"',
+        illegal: '\\n'
+      },
+      {
+        begin: '\'\'\'', end: '\'\'\'',
+        contains: [hljs.BACKSLASH_ESCAPE, SUBST]
+      },
+      {
+        begin: '"""', end: '"""',
+        contains: [hljs.BACKSLASH_ESCAPE, SUBST]
+      },
+      {
+        begin: '\'', end: '\'',
+        illegal: '\\n',
+        contains: [hljs.BACKSLASH_ESCAPE, SUBST]
+      },
+      {
+        begin: '"', end: '"',
+        illegal: '\\n',
+        contains: [hljs.BACKSLASH_ESCAPE, SUBST]
+      }
+    ]
+  };
+  SUBST.contains = [
+    hljs.C_NUMBER_MODE, STRING
+  ];
+
+  var KEYWORDS = {
+    keyword: 'assert break case catch class const continue default do else enum extends false final finally for if ' +
+      'in is new null rethrow return super switch this throw true try var void while with',
+    literal: 'abstract as dynamic export external factory get implements import library operator part set static typedef',
+    built_in:
+      // dart:core
+      'print Comparable DateTime Duration Function Iterable Iterator List Map Match Null Object Pattern RegExp Set ' +
+      'Stopwatch String StringBuffer StringSink Symbol Type Uri bool double int num ' +
+      // dart:html
+      'document window querySelector querySelectorAll Element ElementList'
+  };
+
+  return {
+    keywords: KEYWORDS,
+    contains: [
+      STRING,
+      {
+        className: 'dartdoc',
+        begin: '/\\*\\*', end: '\\*/',
+        subLanguage: 'markdown',
+        subLanguageMode: 'continuous'
+      },
+      {
+        className: 'dartdoc',
+        begin: '///', end: '$',
+        subLanguage: 'markdown',
+        subLanguageMode: 'continuous'
+      },
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE,
+      {
+        className: 'class',
+        beginKeywords: 'class interface', end: '{', excludeEnd: true,
+        contains: [
+          {
+            beginKeywords: 'extends implements'
+          },
+          hljs.UNDERSCORE_TITLE_MODE
+        ]
+      },
+      hljs.C_NUMBER_MODE,
+      {
+        className: 'annotation', begin: '@[A-Za-z]+'
+      },
+      {
+        begin: '=>' // No markup, just a relevance booster
+      }
+    ]
+  }
+};
+},{}],24:[function(require,module,exports){
 module.exports = function(hljs) {
   var KEYWORDS =
     'exports register file shl array record property for mod while set ally label uses raise not ' +
@@ -2349,13 +2789,23 @@ module.exports = function(hljs) {
     'destructor write message program with read initialization except default nil if case cdecl in ' +
     'downto threadvar of try pascal const external constructor type public then implementation ' +
     'finally published procedure';
-  var COMMENT =  {
-    className: 'comment',
-    variants: [
-      {begin: /\{/, end: /\}/, relevance: 0},
-      {begin: /\(\*/, end: /\*\)/, relevance: 10}
-    ]
-  };
+  var COMMENT_MODES = [
+    hljs.C_LINE_COMMENT_MODE,
+    hljs.COMMENT(
+      /\{/,
+      /\}/,
+      {
+        relevance: 0
+      }
+    ),
+    hljs.COMMENT(
+      /\(\*/,
+      /\*\)/,
+      {
+        relevance: 10
+      }
+    )
+  ];
   var STRING = {
     className: 'string',
     begin: /'/, end: /'/,
@@ -2381,24 +2831,22 @@ module.exports = function(hljs) {
         begin: /\(/, end: /\)/,
         keywords: KEYWORDS,
         contains: [STRING, CHAR_STRING]
-      },
-      COMMENT
-    ]
+      }
+    ].concat(COMMENT_MODES)
   };
   return {
     case_insensitive: true,
     keywords: KEYWORDS,
-    illegal: /("|\$[G-Zg-z]|\/\*|<\/)/,
+    illegal: /"|\$[G-Zg-z]|\/\*|<\/|\|/,
     contains: [
-      COMMENT, hljs.C_LINE_COMMENT_MODE,
       STRING, CHAR_STRING,
       hljs.NUMBER_MODE,
       CLASS,
       FUNCTION
-    ]
+    ].concat(COMMENT_MODES)
   };
 };
-},{}],22:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     aliases: ['patch'],
@@ -2407,7 +2855,7 @@ module.exports = function(hljs) {
         className: 'chunk',
         relevance: 10,
         variants: [
-          {begin: /^\@\@ +\-\d+,\d+ +\+\d+,\d+ +\@\@$/},
+          {begin: /^@@ +\-\d+,\d+ +\+\d+,\d+ +@@$/},
           {begin: /^\*\*\* +\d+,\d+ +\*\*\*\*$/},
           {begin: /^\-\-\- +\d+,\d+ +\-\-\-\-$/}
         ]
@@ -2438,11 +2886,11 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],23:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 module.exports = function(hljs) {
   var FILTER = {
     className: 'filter',
-    begin: /\|[A-Za-z]+\:?/,
+    begin: /\|[A-Za-z]+:?/,
     keywords:
       'truncatewords removetags linebreaksbr yesno get_digit timesince random striptags ' +
       'filesizeformat escape linebreaks length_is ljust rjust cut urlize fix_ampersands ' +
@@ -2463,14 +2911,8 @@ module.exports = function(hljs) {
     case_insensitive: true,
     subLanguage: 'xml', subLanguageMode: 'continuous',
     contains: [
-      {
-        className: 'template_comment',
-        begin: /\{%\s*comment\s*%}/, end: /\{%\s*endcomment\s*%}/
-      },
-      {
-        className: 'template_comment',
-        begin: /\{#/, end: /#}/
-      },
+      hljs.COMMENT(/\{%\s*comment\s*%}/, /\{%\s*endcomment\s*%}/),
+      hljs.COMMENT(/\{#/, /#}/),
       {
         className: 'template_tag',
         begin: /\{%/, end: /%}/,
@@ -2494,39 +2936,125 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],24:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 module.exports = function(hljs) {
+  return {
+    aliases: ['docker'],
+    case_insensitive: true,
+    keywords: {
+      built_ins: 'from maintainer cmd expose add copy entrypoint volume user workdir onbuild run env'
+    },
+    contains: [
+      hljs.HASH_COMMENT_MODE,
+      {
+        keywords : {
+          built_in: 'run cmd entrypoint volume add copy workdir onbuild'
+        },
+        begin: /^ *(onbuild +)?(run|cmd|entrypoint|volume|add|copy|workdir) +/,
+        starts: {
+          end: /[^\\]\n/,
+          subLanguage: 'bash', subLanguageMode: 'continuous'
+        }
+      },
+      {
+        keywords: {
+          built_in: 'from maintainer expose env user onbuild'
+        },
+        begin: /^ *(onbuild +)?(from|maintainer|expose|env|user|onbuild) +/, end: /[^\\]\n/,
+        contains: [
+          hljs.APOS_STRING_MODE,
+          hljs.QUOTE_STRING_MODE,
+          hljs.NUMBER_MODE,
+          hljs.HASH_COMMENT_MODE
+        ]
+      }
+    ]
+  }
+};
+},{}],28:[function(require,module,exports){
+module.exports = function(hljs) {
+  var COMMENT = hljs.COMMENT(
+    /@?rem\b/, /$/,
+    {
+      relevance: 10
+    }
+  );
+  var LABEL = {
+    className: 'label',
+    begin: '^\\s*[A-Za-z._?][A-Za-z0-9_$#@~.?]*(:|\\s+label)',
+    relevance: 0
+  };
   return {
     aliases: ['bat', 'cmd'],
     case_insensitive: true,
     keywords: {
-      flow: 'if else goto for in do call exit not exist errorlevel defined equ neq lss leq gtr geq',
+      flow: 'if else goto for in do call exit not exist errorlevel defined',
+      operator: 'equ neq lss leq gtr geq',
       keyword: 'shift cd dir echo setlocal endlocal set pause copy',
       stream: 'prn nul lpt3 lpt2 lpt1 con com4 com3 com2 com1 aux',
-      winutils: 'ping net ipconfig taskkill xcopy ren del'
+      winutils: 'ping net ipconfig taskkill xcopy ren del',
+      built_in: 'append assoc at attrib break cacls cd chcp chdir chkdsk chkntfs cls cmd color ' +
+        'comp compact convert date dir diskcomp diskcopy doskey erase fs ' +
+        'find findstr format ftype graftabl help keyb label md mkdir mode more move path ' +
+        'pause print popd pushd promt rd recover rem rename replace restore rmdir shift' +
+        'sort start subst time title tree type ver verify vol'
     },
     contains: [
       {
-        className: 'envvar', begin: '%%[^ ]'
+        className: 'envvar', begin: /%%[^ ]|%[^ ]+?%|![^ ]+?!/
       },
       {
-        className: 'envvar', begin: '%[^ ]+?%'
-      },
-      {
-        className: 'envvar', begin: '![^ ]+?!'
+        className: 'function',
+        begin: LABEL.begin, end: 'goto:eof',
+        contains: [
+          hljs.inherit(hljs.TITLE_MODE, {begin: '([_a-zA-Z]\\w*\\.)*([_a-zA-Z]\\w*:)?[_a-zA-Z]\\w*'}),
+          COMMENT
+        ]
       },
       {
         className: 'number', begin: '\\b\\d+',
         relevance: 0
       },
+      COMMENT
+    ]
+  };
+};
+},{}],29:[function(require,module,exports){
+module.exports = function(hljs) {
+  var EXPRESSION_KEYWORDS = 'if eq ne lt lte gt gte select default math sep';
+  return {
+    aliases: ['dst'],
+    case_insensitive: true,
+    subLanguage: 'xml', subLanguageMode: 'continuous',
+    contains: [
       {
-        className: 'comment',
-        begin: '@?rem', end: '$'
+        className: 'expression',
+        begin: '{', end: '}',
+        relevance: 0,
+        contains: [
+          {
+            className: 'begin-block', begin: '\#[a-zA-Z\-\ \.]+',
+            keywords: EXPRESSION_KEYWORDS
+          },
+          {
+            className: 'string',
+            begin: '"', end: '"'
+          },
+          {
+            className: 'end-block', begin: '\\\/[a-zA-Z\-\ \.]+',
+            keywords: EXPRESSION_KEYWORDS
+          },
+          {
+            className: 'variable', begin: '[a-zA-Z\-\.]+',
+            keywords: EXPRESSION_KEYWORDS,
+            relevance: 0
+          }
+        ]
       }
     ]
   };
 };
-},{}],25:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 module.exports = function(hljs) {
   var ELIXIR_IDENT_RE = '[a-zA-Z_][a-zA-Z0-9_]*(\\!|\\?)?';
   var ELIXIR_METHOD_RE = '[a-zA-Z_]\\w*[!?=]?|[-+~]\\@|<<|>>|=~|===?|<=>|[<>]=?|\\*\\*|[-/+%^&*~`|]|\\[\\]=?';
@@ -2552,26 +3080,20 @@ module.exports = function(hljs) {
       }
     ]
   };
-  var PARAMS = {
-    endsWithParent: true, returnEnd: true,
-    lexemes: ELIXIR_IDENT_RE,
-    keywords: ELIXIR_KEYWORDS,
-    relevance: 0
-  };
   var FUNCTION = {
     className: 'function',
-    beginKeywords: 'def defmacro', end: /\bdo\b/,
+    beginKeywords: 'def defp defmacro', end: /\B\b/, // the mode is ended by the title
     contains: [
       hljs.inherit(hljs.TITLE_MODE, {
-        begin: ELIXIR_METHOD_RE,
-        starts: PARAMS
+        begin: ELIXIR_IDENT_RE,
+        endsParent: true
       })
     ]
   };
   var CLASS = hljs.inherit(FUNCTION, {
     className: 'class',
     beginKeywords: 'defmodule defrecord', end: /\bdo\b|$|;/
-  })
+  });
   var ELIXIR_DEFAULT_CONTAINS = [
     STRING,
     hljs.HASH_COMMENT_MODE,
@@ -2627,7 +3149,6 @@ module.exports = function(hljs) {
     }
   ];
   SUBST.contains = ELIXIR_DEFAULT_CONTAINS;
-  PARAMS.contains = ELIXIR_DEFAULT_CONTAINS;
 
   return {
     lexemes: ELIXIR_IDENT_RE,
@@ -2635,7 +3156,22 @@ module.exports = function(hljs) {
     contains: ELIXIR_DEFAULT_CONTAINS
   };
 };
-},{}],26:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
+module.exports = function(hljs) {
+  return {
+    subLanguage: 'xml', subLanguageMode: 'continuous',
+    contains: [
+      hljs.COMMENT('<%#', '%>'),
+      {
+        begin: '<%[%=-]?', end: '[%-]?%>',
+        subLanguage: 'ruby',
+        excludeBegin: true,
+        excludeEnd: true
+      }
+    ]
+  };
+};
+},{}],32:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     keywords: {
@@ -2650,10 +3186,7 @@ module.exports = function(hljs) {
         className: 'prompt', begin: '^[0-9]+> ',
         relevance: 10
       },
-      {
-        className: 'comment',
-        begin: '%', end: '$'
-      },
+      hljs.COMMENT('%', '$'),
       {
         className: 'number',
         begin: '\\b(\\d+#[a-fA-F0-9]+|\\d+(\\.\\d+)?([eE][-+]?\\d+)?)',
@@ -2686,22 +3219,19 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],27:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 module.exports = function(hljs) {
   var BASIC_ATOM_RE = '[a-z\'][a-zA-Z0-9_\']*';
   var FUNCTION_NAME_RE = '(' + BASIC_ATOM_RE + ':' + BASIC_ATOM_RE + '|' + BASIC_ATOM_RE + ')';
   var ERLANG_RESERVED = {
     keyword:
-      'after and andalso|10 band begin bnot bor bsl bzr bxor case catch cond div end fun let ' +
-      'not of orelse|10 query receive rem try when xor',
+      'after and andalso|10 band begin bnot bor bsl bzr bxor case catch cond div end fun if ' +
+      'let not of orelse|10 query receive rem try when xor',
     literal:
       'false true'
   };
 
-  var COMMENT = {
-    className: 'comment',
-    begin: '%', end: '$'
-  };
+  var COMMENT = hljs.COMMENT('%', '$');
   var NUMBER = {
     className: 'number',
     begin: '\\b(\\d+#[a-fA-F0-9]+|\\d+(\\.\\d+)?([eE][-+]?\\d+)?)',
@@ -2841,7 +3371,7 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],28:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     contains: [
@@ -2870,11 +3400,91 @@ module.exports = function(hljs) {
     case_insensitive: true
   };
 };
-},{}],29:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 module.exports = function(hljs) {
+  var PARAMS = {
+    className: 'params',
+    begin: '\\(', end: '\\)'
+  };
+
+  var F_KEYWORDS = {
+    constant: '.False. .True.',
+    type: 'integer real character complex logical dimension allocatable|10 parameter ' +
+      'external implicit|10 none double precision assign intent optional pointer ' +
+      'target in out common equivalence data',
+    keyword: 'kind do while private call intrinsic where elsewhere ' +
+      'type endtype endmodule endselect endinterface end enddo endif if forall endforall only contains default return stop then ' +
+      'public subroutine|10 function program .and. .or. .not. .le. .eq. .ge. .gt. .lt. ' +
+      'goto save else use module select case ' +
+      'access blank direct exist file fmt form formatted iostat name named nextrec number opened rec recl sequential status unformatted unit ' +
+      'continue format pause cycle exit ' +
+      'c_null_char c_alert c_backspace c_form_feed flush wait decimal round iomsg ' +
+      'synchronous nopass non_overridable pass protected volatile abstract extends import ' +
+      'non_intrinsic value deferred generic final enumerator class associate bind enum ' +
+      'c_int c_short c_long c_long_long c_signed_char c_size_t c_int8_t c_int16_t c_int32_t c_int64_t c_int_least8_t c_int_least16_t ' +
+      'c_int_least32_t c_int_least64_t c_int_fast8_t c_int_fast16_t c_int_fast32_t c_int_fast64_t c_intmax_t C_intptr_t c_float c_double ' +
+      'c_long_double c_float_complex c_double_complex c_long_double_complex c_bool c_char c_null_ptr c_null_funptr ' +
+      'c_new_line c_carriage_return c_horizontal_tab c_vertical_tab iso_c_binding c_loc c_funloc c_associated  c_f_pointer ' +
+      'c_ptr c_funptr iso_fortran_env character_storage_size error_unit file_storage_size input_unit iostat_end iostat_eor ' +
+      'numeric_storage_size output_unit c_f_procpointer ieee_arithmetic ieee_support_underflow_control ' +
+      'ieee_get_underflow_mode ieee_set_underflow_mode newunit contiguous ' +
+      'pad position action delim readwrite eor advance nml interface procedure namelist include sequence elemental pure',
+    built_in: 'alog alog10 amax0 amax1 amin0 amin1 amod cabs ccos cexp clog csin csqrt dabs dacos dasin datan datan2 dcos dcosh ddim dexp dint ' +
+      'dlog dlog10 dmax1 dmin1 dmod dnint dsign dsin dsinh dsqrt dtan dtanh float iabs idim idint idnint ifix isign max0 max1 min0 min1 sngl ' +
+      'algama cdabs cdcos cdexp cdlog cdsin cdsqrt cqabs cqcos cqexp cqlog cqsin cqsqrt dcmplx dconjg derf derfc dfloat dgamma dimag dlgama ' +
+      'iqint qabs qacos qasin qatan qatan2 qcmplx qconjg qcos qcosh qdim qerf qerfc qexp qgamma qimag qlgama qlog qlog10 qmax1 qmin1 qmod ' +
+      'qnint qsign qsin qsinh qsqrt qtan qtanh abs acos aimag aint anint asin atan atan2 char cmplx conjg cos cosh exp ichar index int log ' +
+      'log10 max min nint sign sin sinh sqrt tan tanh print write dim lge lgt lle llt mod nullify allocate deallocate ' +
+      'adjustl adjustr all allocated any associated bit_size btest ceiling count cshift date_and_time digits dot_product ' +
+      'eoshift epsilon exponent floor fraction huge iand ibclr ibits ibset ieor ior ishft ishftc lbound len_trim matmul ' +
+      'maxexponent maxloc maxval merge minexponent minloc minval modulo mvbits nearest pack present product ' +
+      'radix random_number random_seed range repeat reshape rrspacing scale scan selected_int_kind selected_real_kind ' +
+      'set_exponent shape size spacing spread sum system_clock tiny transpose trim ubound unpack verify achar iachar transfer ' +
+      'dble entry dprod cpu_time command_argument_count get_command get_command_argument get_environment_variable is_iostat_end ' +
+      'ieee_arithmetic ieee_support_underflow_control ieee_get_underflow_mode ieee_set_underflow_mode ' +
+      'is_iostat_eor move_alloc new_line selected_char_kind same_type_as extends_type_of'  +
+      'acosh asinh atanh bessel_j0 bessel_j1 bessel_jn bessel_y0 bessel_y1 bessel_yn erf erfc erfc_scaled gamma log_gamma hypot norm2 ' +
+      'atomic_define atomic_ref execute_command_line leadz trailz storage_size merge_bits ' +
+      'bge bgt ble blt dshiftl dshiftr findloc iall iany iparity image_index lcobound ucobound maskl maskr ' +
+      'num_images parity popcnt poppar shifta shiftl shiftr this_image'
+  };
+  return {
+    case_insensitive: true,
+    aliases: ['f90', 'f95'],
+    keywords: F_KEYWORDS,
+    contains: [
+      hljs.inherit(hljs.APOS_STRING_MODE, {className: 'string', relevance: 0}),
+      hljs.inherit(hljs.QUOTE_STRING_MODE,{className: 'string', relevance: 0}),
+      {
+        className: 'function',
+        beginKeywords: 'subroutine function program',
+        illegal: '[${=\\n]',
+        contains: [hljs.UNDERSCORE_TITLE_MODE, PARAMS]
+      },
+      hljs.COMMENT('!', '$', {relevance: 0}),
+      {
+        className: 'number',
+        begin: '(?=\\b|\\+|\\-|\\.)(?=\\.\\d|\\d)(?:\\d+)?(?:\\.?\\d*)(?:[de][+-]?\\d+)?\\b\\.?',
+        relevance: 0
+      }
+    ]
+  };
+};
+},{}],36:[function(require,module,exports){
+module.exports = function(hljs) {
+  var TYPEPARAM = {
+    begin: '<', end: '>',
+    contains: [
+      hljs.inherit(hljs.TITLE_MODE, {begin: /'[a-zA-Z0-9_]+/})
+    ]
+  };
+
   return {
     aliases: ['fs'],
     keywords:
+      // monad builder keywords (at top, matches before non-bang kws)
+      'yield! return! let! do!' +
+      // regular keywords
       'abstract and as assert base begin class default delegate do done ' +
       'downcast downto elif else end exception extern false finally for ' +
       'fun function global if in inherit inline interface internal lazy let ' +
@@ -2891,20 +3501,19 @@ module.exports = function(hljs) {
         className: 'string',
         begin: '"""', end: '"""'
       },
-      {
-        className: 'comment',
-        begin: '\\(\\*', end: '\\*\\)'
-      },
+      hljs.COMMENT('\\(\\*', '\\*\\)'),
       {
         className: 'class',
         beginKeywords: 'type', end: '\\(|=|$', excludeEnd: true,
         contains: [
-          hljs.UNDERSCORE_TITLE_MODE
+          hljs.UNDERSCORE_TITLE_MODE,
+          TYPEPARAM
         ]
       },
       {
         className: 'annotation',
-        begin: '\\[<', end: '>\\]'
+        begin: '\\[<', end: '>\\]',
+        relevance: 10
       },
       {
         className: 'attribute',
@@ -2917,26 +3526,97 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],30:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
+module.exports = function(hljs) {
+    var GCODE_IDENT_RE = '[A-Z_][A-Z0-9_.]*';
+    var GCODE_CLOSE_RE = '\\%';
+    var GCODE_KEYWORDS = {
+        literal:
+            '',
+        built_in:
+            '',
+        keyword:
+            'IF DO WHILE ENDWHILE CALL ENDIF SUB ENDSUB GOTO REPEAT ENDREPEAT ' +
+            'EQ LT GT NE GE LE OR XOR'
+    };
+    var GCODE_START = {
+        className: 'preprocessor',
+        begin: '([O])([0-9]+)'
+    };
+    var GCODE_CODE = [
+        hljs.C_LINE_COMMENT_MODE,
+        hljs.C_BLOCK_COMMENT_MODE,
+        hljs.COMMENT(/\(/, /\)/),
+        hljs.inherit(hljs.C_NUMBER_MODE, {begin: '([-+]?([0-9]*\\.?[0-9]+\\.?))|' + hljs.C_NUMBER_RE}),
+        hljs.inherit(hljs.APOS_STRING_MODE, {illegal: null}),
+        hljs.inherit(hljs.QUOTE_STRING_MODE, {illegal: null}),
+        {
+            className: 'keyword',
+            begin: '([G])([0-9]+\\.?[0-9]?)'
+        },
+        {
+            className: 'title',
+            begin: '([M])([0-9]+\\.?[0-9]?)'
+        },
+        {
+            className: 'title',
+            begin: '(VC|VS|#)',
+            end: '(\\d+)'
+        },
+        {
+            className: 'title',
+            begin: '(VZOFX|VZOFY|VZOFZ)'
+        },
+        {
+            className: 'built_in',
+            begin: '(ATAN|ABS|ACOS|ASIN|SIN|COS|EXP|FIX|FUP|ROUND|LN|TAN)(\\[)',
+            end: '([-+]?([0-9]*\\.?[0-9]+\\.?))(\\])'
+        },
+        {
+            className: 'label',
+            variants: [
+                {
+                    begin: 'N', end: '\\d+',
+                    illegal: '\\W'
+                }
+            ]
+        }
+    ];
+
+    return {
+        aliases: ['nc'],
+        // Some implementations (CNC controls) of G-code are interoperable with uppercase and lowercase letters seamlessly.
+        // However, most prefer all uppercase and uppercase is customary.
+        case_insensitive: true,
+        lexemes: GCODE_IDENT_RE,
+        keywords: GCODE_KEYWORDS,
+        contains: [
+            {
+                className: 'preprocessor',
+                begin: GCODE_CLOSE_RE
+            },
+            GCODE_START
+        ].concat(GCODE_CODE)
+    };
+};
+},{}],38:[function(require,module,exports){
 module.exports = function (hljs) {
   return {
+    aliases: ['feature'],
     keywords: 'Feature Background Ability Business\ Need Scenario Scenarios Scenario\ Outline Scenario\ Template Examples Given And Then But When',
     contains: [
       {
         className: 'keyword',
         begin: '\\*'
       },
-      {
-        className: 'comment',
-        begin: '@[^@\r\n\t ]+', end: '$'
-      },
+      hljs.COMMENT('@[^@\r\n\t ]+', '$'),
       {
         className: 'string',
         begin: '\\|', end: '\\$'
       },
       {
         className: 'variable',
-        begin: '<', end: '>',
+        begin: '<', end: '>'
       },
       hljs.HASH_COMMENT_MODE,
       {
@@ -2947,7 +3627,7 @@ module.exports = function (hljs) {
     ]
   };
 };
-},{}],31:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     keywords: {
@@ -3041,7 +3721,7 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],32:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 module.exports = function(hljs) {
   var GO_KEYWORDS = {
     keyword:
@@ -3073,14 +3753,14 @@ module.exports = function(hljs) {
       },
       {
         className: 'number',
-        begin: '[^a-zA-Z_0-9](\\-|\\+)?\\d+(\\.\\d+|\\/\\d+)?((d|e|f|l|s)(\\+|\\-)?\\d+)?',
+        begin: hljs.C_NUMBER_RE + '[dflsi]?',
         relevance: 0
       },
       hljs.C_NUMBER_MODE
     ]
   };
 };
-},{}],33:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     case_insensitive: true,
@@ -3104,7 +3784,7 @@ module.exports = function(hljs) {
         'times toInteger toList tokenize upto waitForOrKill withPrintWriter withReader ' +
         'withStream withWriter withWriterAppend write writeLine'
     },
-    contains: [    
+    contains: [
       hljs.C_LINE_COMMENT_MODE,
       hljs.C_BLOCK_COMMENT_MODE,
       hljs.APOS_STRING_MODE,
@@ -3115,7 +3795,93 @@ module.exports = function(hljs) {
     ]
   }
 };
-},{}],34:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
+module.exports = function(hljs) {
+    return {
+        keywords: {
+            typename: 'byte short char int long boolean float double void',
+            literal : 'true false null',
+            keyword:
+                // groovy specific keywords
+            'def as in assert trait ' +
+                // common keywords with Java
+            'super this abstract static volatile transient public private protected synchronized final ' +
+            'class interface enum if else for while switch case break default continue ' +
+            'throw throws try catch finally implements extends new import package return instanceof'
+        },
+
+        contains: [
+            hljs.C_LINE_COMMENT_MODE,
+            {
+                className: 'javadoc',
+                begin: '/\\*\\*', end: '\\*//*',
+                relevance: 0,
+                contains: [
+                    {
+                        className: 'javadoctag', begin: '(^|\\s)@[A-Za-z]+'
+                    }
+                ]
+            },
+            hljs.C_BLOCK_COMMENT_MODE,
+            {
+                className: 'string',
+                begin: '"""', end: '"""'
+            },
+            {
+                className: 'string',
+                begin: "'''", end: "'''"
+            },
+            {
+                className: 'string',
+                begin: "\\$/", end: "/\\$",
+                relevance: 10
+            },
+            hljs.APOS_STRING_MODE,
+            {
+                className: 'regexp',
+                begin: /~?\/[^\/\n]+\//,
+                contains: [
+                    hljs.BACKSLASH_ESCAPE
+                ]
+            },
+            hljs.QUOTE_STRING_MODE,
+            {
+                className: 'shebang',
+                begin: "^#!/usr/bin/env", end: '$',
+                illegal: '\n'
+            },
+            hljs.BINARY_NUMBER_MODE,
+            {
+                className: 'class',
+                beginKeywords: 'class interface trait enum', end: '{',
+                illegal: ':',
+                contains: [
+                    {beginKeywords: 'extends implements'},
+                    hljs.UNDERSCORE_TITLE_MODE,
+                ]
+            },
+            hljs.C_NUMBER_MODE,
+            {
+                className: 'annotation', begin: '@[A-Za-z]+'
+            },
+            {
+                // highlight map keys and named parameters as strings
+                className: 'string', begin: /[^\?]{0}[A-Za-z0-9_$]+ *:/
+            },
+            {
+                // catch middle element of the ternary operator
+                // to avoid highlight it as a label, named parameter, or map key
+                begin: /\?/, end: /\:/
+            },
+            {
+                // highlight labeled statements
+                className: 'label', begin: '^\\s*[A-Za-z0-9_$]+:',
+                relevance: 0
+            },
+        ]
+    }
+};
+},{}],43:[function(require,module,exports){
 module.exports = // TODO support filter tags like :javascript, support inline HTML
 function(hljs) {
   return {
@@ -3126,12 +3892,14 @@ function(hljs) {
         begin: '^!!!( (5|1\\.1|Strict|Frameset|Basic|Mobile|RDFa|XML\\b.*))?$',
         relevance: 10
       },
-      {
-        className: 'comment',
-        // FIXME these comments should be allowed to span indented lines
-        begin: '^\\s*(!=#|=#|-#|/).*$',
-        relevance: 0
-      },
+      // FIXME these comments should be allowed to span indented lines
+      hljs.COMMENT(
+        '^\\s*(!=#|=#|-#|/).*$',
+        false,
+        {
+          relevance: 0
+        }
+      ),
       {
         begin: '^\\s*(-|=|!=)(?!#)',
         starts: {
@@ -3237,7 +4005,7 @@ function(hljs) {
     ]
   };
 };
-},{}],35:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 module.exports = function(hljs) {
   var EXPRESSION_KEYWORDS = 'each in with if else unless bindattr action collection debugger log outlet template unbound view yield';
   return {
@@ -3270,18 +4038,18 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],36:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 module.exports = function(hljs) {
-
-  var COMMENT = {
-    className: 'comment',
-    variants: [
-      { begin: '--', end: '$' },
-      { begin: '{-', end: '-}'
-      , contains: ['self']
+  var COMMENT_MODES = [
+    hljs.COMMENT('--', '$'),
+    hljs.COMMENT(
+      '{-',
+      '-}',
+      {
+        contains: ['self']
       }
-    ]
-  };
+    )
+  ];
 
   var PRAGMA = {
     className: 'pragma',
@@ -3305,11 +4073,10 @@ module.exports = function(hljs) {
     illegal: '"',
     contains: [
       PRAGMA,
-      COMMENT,
       PREPROCESSOR,
       {className: 'type', begin: '\\b[A-Z][\\w]*(\\((\\.\\.|,|\\w+)\\))?'},
       hljs.inherit(hljs.TITLE_MODE, {begin: '[_a-z][\\w\']*'})
-    ]
+    ].concat(COMMENT_MODES)
   };
 
   var RECORD = {
@@ -3333,14 +4100,14 @@ module.exports = function(hljs) {
         className: 'module',
         begin: '\\bmodule\\b', end: 'where',
         keywords: 'module where',
-        contains: [LIST, COMMENT],
+        contains: [LIST].concat(COMMENT_MODES),
         illegal: '\\W\\.|;'
       },
       {
         className: 'import',
         begin: '\\bimport\\b', end: '$',
         keywords: 'import|0 qualified as hiding',
-        contains: [LIST, COMMENT],
+        contains: [LIST].concat(COMMENT_MODES),
         illegal: '\\W\\.|;'
       },
 
@@ -3348,30 +4115,30 @@ module.exports = function(hljs) {
         className: 'class',
         begin: '^(\\s*)?(class|instance)\\b', end: 'where',
         keywords: 'class family instance where',
-        contains: [CONSTRUCTOR, LIST, COMMENT]
+        contains: [CONSTRUCTOR, LIST].concat(COMMENT_MODES)
       },
       {
         className: 'typedef',
         begin: '\\b(data|(new)?type)\\b', end: '$',
         keywords: 'data family type newtype deriving',
-        contains: [PRAGMA, COMMENT, CONSTRUCTOR, LIST, RECORD]
+        contains: [PRAGMA, CONSTRUCTOR, LIST, RECORD].concat(COMMENT_MODES)
       },
       {
         className: 'default',
         beginKeywords: 'default', end: '$',
-        contains: [CONSTRUCTOR, LIST, COMMENT]
+        contains: [CONSTRUCTOR, LIST].concat(COMMENT_MODES)
       },
       {
         className: 'infix',
         beginKeywords: 'infix infixl infixr', end: '$',
-        contains: [hljs.C_NUMBER_MODE, COMMENT]
+        contains: [hljs.C_NUMBER_MODE].concat(COMMENT_MODES)
       },
       {
         className: 'foreign',
         begin: '\\bforeign\\b', end: '$',
         keywords: 'foreign import export ccall stdcall cplusplus jvm ' +
                   'dotnet safe unsafe',
-        contains: [CONSTRUCTOR, hljs.QUOTE_STRING_MODE, COMMENT]
+        contains: [CONSTRUCTOR, hljs.QUOTE_STRING_MODE].concat(COMMENT_MODES)
       },
       {
         className: 'shebang',
@@ -3381,7 +4148,6 @@ module.exports = function(hljs) {
       // "Whitespaces".
 
       PRAGMA,
-      COMMENT,
       PREPROCESSOR,
 
       // Literals and names.
@@ -3393,10 +4159,10 @@ module.exports = function(hljs) {
       hljs.inherit(hljs.TITLE_MODE, {begin: '^[_a-z][\\w\']*'}),
 
       {begin: '->|<-'} // No markup, relevance booster
-    ]
+    ].concat(COMMENT_MODES)
   };
 };
-},{}],37:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 module.exports = function(hljs) {
   var IDENT_RE = '[a-zA-Z_$][a-zA-Z0-9_$]*';
   var IDENT_FUNC_RETURN_TYPE_RE = '([*]|[a-zA-Z_$][a-zA-Z0-9_$]*)';
@@ -3405,8 +4171,8 @@ module.exports = function(hljs) {
     aliases: ['hx'],
     keywords: {
       keyword: 'break callback case cast catch class continue default do dynamic else enum extends extern ' +
-		'for function here if implements import in inline interface never new override package private ' + 
-		'public return static super switch this throw trace try typedef untyped using var while',
+    'for function here if implements import in inline interface never new override package private ' +
+    'public return static super switch this throw trace try typedef untyped using var while',
       literal: 'true false null'
     },
     contains: [
@@ -3457,9 +4223,10 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],38:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
+    aliases: ['https'],
     illegal: '\\S',
     contains: [
       {
@@ -3491,16 +4258,13 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],39:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     case_insensitive: true,
     illegal: /\S/,
     contains: [
-      {
-        className: 'comment',
-        begin: ';', end: '$'
-      },
+      hljs.COMMENT(';', '$'),
       {
         className: 'title',
         begin: '^\\[', end: '\\]'
@@ -3521,13 +4285,23 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],40:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 module.exports = function(hljs) {
+  var GENERIC_IDENT_RE = hljs.UNDERSCORE_IDENT_RE + '(<' + hljs.UNDERSCORE_IDENT_RE + '>)?';
   var KEYWORDS =
     'false synchronized int abstract float private char boolean static null if const ' +
-    'for true while long throw strictfp finally protected import native final return void ' +
-    'enum else break transient new catch instanceof byte super volatile case assert short ' +
-    'package default double public try this switch continue throws';
+    'for true while long strictfp finally protected import native final void ' +
+    'enum else break transient catch instanceof byte super volatile case assert short ' +
+    'package default double public try this switch continue throws protected public private';
+
+  // https://docs.oracle.com/javase/7/docs/technotes/guides/language/underscores-literals.html
+  var JAVA_NUMBER_RE = '(\\b(0b[01_]+)|\\b0[xX][a-fA-F0-9_]+|(\\b[\\d_]+(\\.[\\d_]*)?|\\.[\\d_]+)([eE][-+]?\\d+)?)[lLfF]?'; // 0b..., 0x..., 0..., decimal, float
+  var JAVA_NUMBER_MODE = {
+    className: 'number',
+    begin: JAVA_NUMBER_RE,
+    relevance: 0
+  };
+
   return {
     aliases: ['jsp'],
     keywords: KEYWORDS,
@@ -3536,55 +4310,74 @@ module.exports = function(hljs) {
       {
         className: 'javadoc',
         begin: '/\\*\\*', end: '\\*/',
+        relevance: 0,
         contains: [{
           className: 'javadoctag', begin: '(^|\\s)@[A-Za-z]+'
-        }],
-        relevance: 10
+        }]
       },
       hljs.C_LINE_COMMENT_MODE,
       hljs.C_BLOCK_COMMENT_MODE,
       hljs.APOS_STRING_MODE,
       hljs.QUOTE_STRING_MODE,
       {
-        beginKeywords: 'protected public private', end: /[{;=]/,
+        className: 'class',
+        beginKeywords: 'class interface', end: /[{;=]/, excludeEnd: true,
+        keywords: 'class interface',
+        illegal: /[:"\[\]]/,
+        contains: [
+          {beginKeywords: 'extends implements'},
+          hljs.UNDERSCORE_TITLE_MODE
+        ]
+      },
+      {
+        // Expression keywords prevent 'keyword Name(...)' from being
+        // recognized as a function definition
+        beginKeywords: 'new throw return',
+        relevance: 0
+      },
+      {
+        className: 'function',
+        begin: '(' + GENERIC_IDENT_RE + '\\s+)+' + hljs.UNDERSCORE_IDENT_RE + '\\s*\\(', returnBegin: true, end: /[{;=]/,
+        excludeEnd: true,
         keywords: KEYWORDS,
         contains: [
           {
-            className: 'class',
-            beginKeywords: 'class interface', endsWithParent: true, excludeEnd: true,
-            illegal: /[:"\[\]]/,
-            contains: [
-              {
-                beginKeywords: 'extends implements',
-                relevance: 10
-              },
-              hljs.UNDERSCORE_TITLE_MODE
-            ]
+            begin: hljs.UNDERSCORE_IDENT_RE + '\\s*\\(', returnBegin: true,
+            relevance: 0,
+            contains: [hljs.UNDERSCORE_TITLE_MODE]
           },
           {
-            begin: hljs.UNDERSCORE_IDENT_RE + '\\s*\\(', returnBegin: true,
+            className: 'params',
+            begin: /\(/, end: /\)/,
+            keywords: KEYWORDS,
+            relevance: 0,
             contains: [
-              hljs.UNDERSCORE_TITLE_MODE
+              hljs.APOS_STRING_MODE,
+              hljs.QUOTE_STRING_MODE,
+              hljs.C_NUMBER_MODE,
+              hljs.C_BLOCK_COMMENT_MODE
             ]
-          }
+          },
+          hljs.C_LINE_COMMENT_MODE,
+          hljs.C_BLOCK_COMMENT_MODE
         ]
       },
-      hljs.C_NUMBER_MODE,
+      JAVA_NUMBER_MODE,
       {
         className: 'annotation', begin: '@[A-Za-z]+'
       }
     ]
   };
 };
-},{}],41:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     aliases: ['js'],
     keywords: {
       keyword:
-        'in if for while finally var new function do return void else break catch ' +
+        'in of if for while finally var new function do return void else break catch ' +
         'instanceof with throw case default try this switch continue typeof delete ' +
-        'let yield const class',
+        'let yield const export super debugger as await',
       literal:
         'true false null undefined NaN Infinity',
       built_in:
@@ -3594,19 +4387,38 @@ module.exports = function(hljs) {
         'TypeError URIError Number Math Date String RegExp Array Float32Array ' +
         'Float64Array Int16Array Int32Array Int8Array Uint16Array Uint32Array ' +
         'Uint8Array Uint8ClampedArray ArrayBuffer DataView JSON Intl arguments require ' +
-        'module console window document'
+        'module console window document Symbol Set Map WeakSet WeakMap Proxy Reflect ' +
+        'Promise'
     },
     contains: [
       {
         className: 'pi',
-        begin: /^\s*('|")use strict('|")/,
-        relevance: 10
+        relevance: 10,
+        variants: [
+          {begin: /^\s*('|")use strict('|")/},
+          {begin: /^\s*('|")use asm('|")/}
+        ]
       },
       hljs.APOS_STRING_MODE,
       hljs.QUOTE_STRING_MODE,
+      { // template string
+        className: 'string',
+        begin: '`', end: '`',
+        contains: [
+          hljs.BACKSLASH_ESCAPE,
+          {
+            className: 'subst',
+            begin: '\\$\\{', end: '\\}'
+          }
+        ]
+      },
       hljs.C_LINE_COMMENT_MODE,
       hljs.C_BLOCK_COMMENT_MODE,
-      hljs.C_NUMBER_MODE,
+      {
+        className: 'number',
+        begin: '\\b(0[xXbBoO][a-fA-F0-9]+|(\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)', // 0x..., 0..., 0b..., 0o..., decimal, float
+        relevance: 0
+      },
       { // "value" container
         begin: '(' + hljs.RE_STARTERS_RE + '|\\b(case|return|throw)\\b)\\s*',
         keywords: 'return throw case',
@@ -3614,8 +4426,8 @@ module.exports = function(hljs) {
           hljs.C_LINE_COMMENT_MODE,
           hljs.C_BLOCK_COMMENT_MODE,
           hljs.REGEXP_MODE,
-          { // E4X
-            begin: /</, end: />;/,
+          { // E4X / JSX
+            begin: /</, end: />\s*[);\]]/,
             relevance: 0,
             subLanguage: 'xml'
           }
@@ -3644,11 +4456,29 @@ module.exports = function(hljs) {
       },
       {
         begin: '\\.' + hljs.IDENT_RE, relevance: 0 // hack: prevents detection of keywords after dots
+      },
+      // ECMAScript 6 modules import
+      {
+        beginKeywords: 'import', end: '[;$]',
+        keywords: 'import from as',
+        contains: [
+          hljs.APOS_STRING_MODE,
+          hljs.QUOTE_STRING_MODE
+        ]
+      },
+      { // ES6 class
+        className: 'class',
+        beginKeywords: 'class', end: /[{;=]/, excludeEnd: true,
+        illegal: /[:"\[\]]/,
+        contains: [
+          {beginKeywords: 'extends'},
+          hljs.UNDERSCORE_TITLE_MODE
+        ]
       }
     ]
   };
 };
-},{}],42:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 module.exports = function(hljs) {
   var LITERALS = {literal: 'true false null'};
   var TYPES = [
@@ -3686,7 +4516,268 @@ module.exports = function(hljs) {
     illegal: '\\S'
   };
 };
-},{}],43:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
+module.exports = function(hljs) {
+  // Since there are numerous special names in Julia, it is too much trouble
+  // to maintain them by hand. Hence these names (i.e. keywords, literals and
+  // built-ins) are automatically generated from Julia (v0.3.0) itself through
+  // following scripts for each.
+
+  var KEYWORDS = {
+    // # keyword generator
+    // println("\"in\",")
+    // for kw in Base.REPLCompletions.complete_keyword("")
+    //     println("\"$kw\",")
+    // end
+    keyword:
+      'in abstract baremodule begin bitstype break catch ccall const continue do else elseif end export ' +
+      'finally for function global if immutable import importall let local macro module quote return try type ' +
+      'typealias using while',
+
+    // # literal generator
+    // println("\"true\",\n\"false\"")
+    // for name in Base.REPLCompletions.completions("", 0)[1]
+    //     try
+    //         s = symbol(name)
+    //         v = eval(s)
+    //         if !isa(v, Function) &&
+    //            !isa(v, DataType) &&
+    //            !issubtype(typeof(v), Tuple) &&
+    //            !isa(v, UnionType) &&
+    //            !isa(v, Module) &&
+    //            !isa(v, TypeConstructor) &&
+    //            !isa(v, Colon)
+    //             println("\"$name\",")
+    //         end
+    //     end
+    // end
+    literal:
+      'true false ANY ARGS CPU_CORES C_NULL DL_LOAD_PATH DevNull ENDIAN_BOM ENV I|0 Inf Inf16 Inf32 ' +
+      'InsertionSort JULIA_HOME LOAD_PATH MS_ASYNC MS_INVALIDATE MS_SYNC MergeSort NaN NaN16 NaN32 OS_NAME QuickSort ' +
+      'RTLD_DEEPBIND RTLD_FIRST RTLD_GLOBAL RTLD_LAZY RTLD_LOCAL RTLD_NODELETE RTLD_NOLOAD RTLD_NOW RoundDown ' +
+      'RoundFromZero RoundNearest RoundToZero RoundUp STDERR STDIN STDOUT VERSION WORD_SIZE catalan cglobal e eu ' +
+      'eulergamma golden im nothing pi γ π φ',
+
+    // # built_in generator:
+    // for name in Base.REPLCompletions.completions("", 0)[1]
+    //     try
+    //         v = eval(symbol(name))
+    //         if isa(v, DataType)
+    //             println("\"$name\",")
+    //         end
+    //     end
+    // end
+    built_in:
+      'ASCIIString AbstractArray AbstractRNG AbstractSparseArray Any ArgumentError Array Associative Base64Pipe ' +
+      'Bidiagonal BigFloat BigInt BitArray BitMatrix BitVector Bool BoundsError Box CFILE Cchar Cdouble Cfloat Char ' +
+      'CharString Cint Clong Clonglong ClusterManager Cmd Coff_t Colon Complex Complex128 Complex32 Complex64 ' +
+      'Condition Cptrdiff_t Cshort Csize_t Cssize_t Cuchar Cuint Culong Culonglong Cushort Cwchar_t DArray DataType ' +
+      'DenseArray Diagonal Dict DimensionMismatch DirectIndexString Display DivideError DomainError EOFError ' +
+      'EachLine Enumerate ErrorException Exception Expr Factorization FileMonitor FileOffset Filter Float16 Float32 ' +
+      'Float64 FloatRange FloatingPoint Function GetfieldNode GotoNode Hermitian IO IOBuffer IOStream IPv4 IPv6 ' +
+      'InexactError Int Int128 Int16 Int32 Int64 Int8 IntSet Integer InterruptException IntrinsicFunction KeyError ' +
+      'LabelNode LambdaStaticData LineNumberNode LoadError LocalProcess MIME MathConst MemoryError MersenneTwister ' +
+      'Method MethodError MethodTable Module NTuple NewvarNode Nothing Number ObjectIdDict OrdinalRange ' +
+      'OverflowError ParseError PollingFileWatcher ProcessExitedException ProcessGroup Ptr QuoteNode Range Range1 ' +
+      'Ranges Rational RawFD Real Regex RegexMatch RemoteRef RepString RevString RopeString RoundingMode Set ' +
+      'SharedArray Signed SparseMatrixCSC StackOverflowError Stat StatStruct StepRange String SubArray SubString ' +
+      'SymTridiagonal Symbol SymbolNode Symmetric SystemError Task TextDisplay Timer TmStruct TopNode Triangular ' +
+      'Tridiagonal Type TypeConstructor TypeError TypeName TypeVar UTF16String UTF32String UTF8String UdpSocket ' +
+      'Uint Uint128 Uint16 Uint32 Uint64 Uint8 UndefRefError UndefVarError UniformScaling UnionType UnitRange ' +
+      'Unsigned Vararg VersionNumber WString WeakKeyDict WeakRef Woodbury Zip'
+  };
+
+  // ref: http://julia.readthedocs.org/en/latest/manual/variables/#allowed-variable-names
+  var VARIABLE_NAME_RE = "[A-Za-z_\\u00A1-\\uFFFF][A-Za-z_0-9\\u00A1-\\uFFFF]*";
+
+  // placeholder for recursive self-reference
+  var DEFAULT = { lexemes: VARIABLE_NAME_RE, keywords: KEYWORDS };
+
+  var TYPE_ANNOTATION = {
+    className: "type-annotation",
+    begin: /::/
+  };
+
+  var SUBTYPE = {
+    className: "subtype",
+    begin: /<:/
+  };
+
+  // ref: http://julia.readthedocs.org/en/latest/manual/integers-and-floating-point-numbers/
+  var NUMBER = {
+    className: "number",
+    // supported numeric literals:
+    //  * binary literal (e.g. 0x10)
+    //  * octal literal (e.g. 0o76543210)
+    //  * hexadecimal literal (e.g. 0xfedcba876543210)
+    //  * hexadecimal floating point literal (e.g. 0x1p0, 0x1.2p2)
+    //  * decimal literal (e.g. 9876543210, 100_000_000)
+    //  * floating pointe literal (e.g. 1.2, 1.2f, .2, 1., 1.2e10, 1.2e-10)
+    begin: /(\b0x[\d_]*(\.[\d_]*)?|0x\.\d[\d_]*)p[-+]?\d+|\b0[box][a-fA-F0-9][a-fA-F0-9_]*|(\b\d[\d_]*(\.[\d_]*)?|\.\d[\d_]*)([eEfF][-+]?\d+)?/,
+    relevance: 0
+  };
+
+  var CHAR = {
+    className: "char",
+    begin: /'(.|\\[xXuU][a-zA-Z0-9]+)'/
+  };
+
+  var INTERPOLATION = {
+    className: 'subst',
+    begin: /\$\(/, end: /\)/,
+    keywords: KEYWORDS
+  };
+
+  var INTERPOLATED_VARIABLE = {
+    className: 'variable',
+    begin: "\\$" + VARIABLE_NAME_RE
+  };
+
+  // TODO: neatly escape normal code in string literal
+  var STRING = {
+    className: "string",
+    contains: [hljs.BACKSLASH_ESCAPE, INTERPOLATION, INTERPOLATED_VARIABLE],
+    variants: [
+      { begin: /\w*"/, end: /"\w*/ },
+      { begin: /\w*"""/, end: /"""\w*/ }
+    ]
+  };
+
+  var COMMAND = {
+    className: "string",
+    contains: [hljs.BACKSLASH_ESCAPE, INTERPOLATION, INTERPOLATED_VARIABLE],
+    begin: '`', end: '`'
+  };
+
+  var MACROCALL = {
+    className: "macrocall",
+    begin: "@" + VARIABLE_NAME_RE
+  };
+
+  var COMMENT = {
+    className: "comment",
+    variants: [
+      { begin: "#=", end: "=#", relevance: 10 },
+      { begin: '#', end: '$' }
+    ]
+  };
+
+  DEFAULT.contains = [
+    NUMBER,
+    CHAR,
+    TYPE_ANNOTATION,
+    SUBTYPE,
+    STRING,
+    COMMAND,
+    MACROCALL,
+    COMMENT,
+    hljs.HASH_COMMENT_MODE
+  ];
+  INTERPOLATION.contains = DEFAULT.contains;
+
+  return DEFAULT;
+};
+},{}],53:[function(require,module,exports){
+module.exports = function (hljs) {
+  var KEYWORDS = 'val var get set class trait object public open private protected ' +
+	'final enum if else do while for when break continue throw try catch finally ' +
+	'import package is as in return fun override default companion reified inline volatile transient native';
+  
+  return {
+    keywords: {
+      typename : 'Byte Short Char Int Long Boolean Float Double Void Unit Nothing',
+      literal : 'true false null',
+      keyword: KEYWORDS
+    },
+    contains : [
+      hljs.C_LINE_COMMENT_MODE,
+      {
+	  className: 'javadoc',
+	  begin: '/\\*\\*', end: '\\*//*',
+	  relevance: 0,
+	  contains: [
+	      {
+		  className: 'javadoctag', begin: '(^|\\s)@[A-Za-z]+'
+	      }
+	  ]
+      },
+      hljs.C_BLOCK_COMMENT_MODE,
+      {
+	className: 'type',
+	begin: /</, end: />/,
+	returnBegin: true,
+	excludeEnd: false,
+	relevance: 0
+      },
+      {
+	className: 'function',
+	beginKeywords: 'fun', end: '[(]|$',
+	returnBegin: true,
+	excludeEnd : true,
+	keywords: KEYWORDS,
+	illegal: /fun\s+(<.*>)?[^\s\(]+(\s+[^\s\(]+)\s*=/,
+	relevance : 5,
+	contains: [
+	  {
+            begin: hljs.UNDERSCORE_IDENT_RE + '\\s*\\(', returnBegin: true,
+            relevance: 0,
+            contains: [hljs.UNDERSCORE_TITLE_MODE]
+          },
+	  {
+	    className : 'type',
+	    begin: /</, end : />/, keywords: 'reified',
+	    relevance: 0
+	  },
+          {
+            className: 'params',
+            begin: /\(/, end: /\)/,
+            keywords: KEYWORDS,
+            relevance: 0,
+	    illegal : /\([^\(,\s:]+,/,
+            contains: [
+	      {
+		className: 'typename',
+		begin: /:\s*/, end: /\s*[=\)]/, excludeBegin: true, returnEnd: true,
+		relevance: 0
+	      }
+            ]
+          },
+          hljs.C_LINE_COMMENT_MODE,
+          hljs.C_BLOCK_COMMENT_MODE
+	]
+      },
+      {
+	className: 'class',
+	beginKeywords: 'class trait', end: /[:\{(]|$/,
+	excludeEnd : true,
+	illegal: 'extends implements',
+	contains: [
+	  hljs.UNDERSCORE_TITLE_MODE,
+	  {
+	    className : 'type',
+	    begin: /</, end : />/, excludeBegin: true, excludeEnd: true,
+	    relevance: 0
+	  },
+	  {
+	    className : 'typename',
+	    begin : /[,:]\s*/, end : /[<\(,]|$/, excludeBegin: true, returnEnd: true
+	  }
+	]
+      },
+      {
+	className: 'variable', beginKeywords: 'var val', end : /\s*[=:$]/, excludeEnd: true
+      },
+      hljs.QUOTE_STRING_MODE,
+      {
+	  className: 'shebang',
+	  begin: "^#!/usr/bin/env", end: '$',
+	  illegal: '\n'
+      },
+      hljs.C_NUMBER_MODE
+    ]
+  };
+};
+},{}],54:[function(require,module,exports){
 module.exports = function(hljs) {
   var LASSO_IDENT_RE = '[a-zA-Z_][a-zA-Z0-9_.]*';
   var LASSO_ANGLE_RE = '<\\?(lasso(script)?|=)';
@@ -3697,8 +4788,8 @@ module.exports = function(hljs) {
       'bw nbw ew new cn ncn lt lte gt gte eq neq rx nrx ft',
     built_in:
       'array date decimal duration integer map pair string tag xml null ' +
-      'bytes list queue set stack staticarray tie local var variable ' +
-      'global data self inherited',
+      'boolean bytes keyword list locale queue set stack staticarray ' +
+      'local var variable global data self inherited',
     keyword:
       'error_code error_msg error_pop error_push error_reset cache ' +
       'database_names database_schemanames database_tablenames define_tag ' +
@@ -3719,11 +4810,13 @@ module.exports = function(hljs) {
       'skip split_thread sum take thread to trait type where with ' +
       'yield yieldhome'
   };
-  var HTML_COMMENT = {
-    className: 'comment',
-    begin: '<!--', end: '-->',
-    relevance: 0
-  };
+  var HTML_COMMENT = hljs.COMMENT(
+    '<!--',
+    '-->',
+    {
+      relevance: 0
+    }
+  );
   var LASSO_NOPROCESS = {
     className: 'preprocessor',
     begin: '\\[noprocess\\]',
@@ -3750,7 +4843,7 @@ module.exports = function(hljs) {
       contains: [hljs.PHRASAL_WORDS_MODE]
     },
     hljs.C_BLOCK_COMMENT_MODE,
-    hljs.inherit(hljs.C_NUMBER_MODE, {begin: hljs.C_NUMBER_RE + '|-?(infinity|nan)\\b'}),
+    hljs.inherit(hljs.C_NUMBER_MODE, {begin: hljs.C_NUMBER_RE + '|(-?infinity|nan)\\b'}),
     hljs.inherit(hljs.APOS_STRING_MODE, {illegal: null}),
     hljs.inherit(hljs.QUOTE_STRING_MODE, {illegal: null}),
     {
@@ -3801,7 +4894,7 @@ module.exports = function(hljs) {
     },
     {
       className: 'built_in',
-      begin: '\\.\\.?',
+      begin: '\\.\\.?\\s*',
       relevance: 0,
       contains: [LASSO_DATAMEMBER]
     },
@@ -3848,7 +4941,7 @@ module.exports = function(hljs) {
               relevance: 0,
               starts: {
                 className: 'markup',
-                end: LASSO_ANGLE_RE,
+                end: '\\[noprocess\\]|' + LASSO_ANGLE_RE,
                 returnEnd: true,
                 contains: [HTML_COMMENT]
               }
@@ -3871,10 +4964,148 @@ module.exports = function(hljs) {
     ].concat(LASSO_CODE)
   };
 };
-},{}],44:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
+module.exports = function(hljs) {
+  var IDENT_RE        = '[\\w-]+'; // yes, Less identifiers may begin with a digit
+  var INTERP_IDENT_RE = '(' + IDENT_RE + '|@{' + IDENT_RE + '})';
+
+  /* Generic Modes */
+
+  var RULES = [], VALUE = []; // forward def. for recursive modes
+
+  var STRING_MODE = function(c) { return {
+    // Less strings are not multiline (also include '~' for more consistent coloring of "escaped" strings)
+    className: 'string', begin: '~?' + c + '.*?' + c
+  };};
+
+  var IDENT_MODE = function(name, begin, relevance) { return {
+    className: name, begin: begin, relevance: relevance
+  };};
+
+  var FUNCT_MODE = function(name, ident, obj) {
+    return hljs.inherit({
+        className: name, begin: ident + '\\(', end: '\\(',
+        returnBegin: true, excludeEnd: true, relevance: 0
+    }, obj);
+  };
+
+  var PARENS_MODE = {
+    // used only to properly balance nested parens inside mixin call, def. arg list
+    begin: '\\(', end: '\\)', contains: VALUE, relevance: 0
+  };
+
+  // generic Less highlighter (used almost everywhere except selectors):
+  VALUE.push(
+    hljs.C_LINE_COMMENT_MODE,
+    hljs.C_BLOCK_COMMENT_MODE,
+    STRING_MODE("'"),
+    STRING_MODE('"'),
+    hljs.CSS_NUMBER_MODE, // fixme: it does not include dot for numbers like .5em :(
+    IDENT_MODE('hexcolor', '#[0-9A-Fa-f]+\\b'),
+    FUNCT_MODE('function', '(url|data-uri)', {
+      starts: {className: 'string', end: '[\\)\\n]', excludeEnd: true}
+    }),
+    FUNCT_MODE('function', IDENT_RE),
+    PARENS_MODE,
+    IDENT_MODE('variable', '@@?' + IDENT_RE, 10),
+    IDENT_MODE('variable', '@{'  + IDENT_RE + '}'),
+    IDENT_MODE('built_in', '~?`[^`]*?`'), // inline javascript (or whatever host language) *multiline* string
+    { // @media features (it’s here to not duplicate things in AT_RULE_MODE with extra PARENS_MODE overriding):
+      className: 'attribute', begin: IDENT_RE + '\\s*:', end: ':', returnBegin: true, excludeEnd: true
+    }
+  );
+
+  var VALUE_WITH_RULESETS = VALUE.concat({
+    begin: '{', end: '}', contains: RULES
+  });
+
+  var MIXIN_GUARD_MODE = {
+    beginKeywords: 'when', endsWithParent: true,
+    contains: [{beginKeywords: 'and not'}].concat(VALUE) // using this form to override VALUE’s 'function' match
+  };
+
+  /* Rule-Level Modes */
+
+  var RULE_MODE = {
+    className: 'attribute',
+    begin: INTERP_IDENT_RE, end: ':', excludeEnd: true,
+    contains: [hljs.C_LINE_COMMENT_MODE, hljs.C_BLOCK_COMMENT_MODE],
+    illegal: /\S/,
+    starts: {end: '[;}]', returnEnd: true, contains: VALUE, illegal: '[<=$]'}
+  };
+
+  var AT_RULE_MODE = {
+    className: 'at_rule', // highlight only at-rule keyword
+    begin: '@(import|media|charset|font-face|(-[a-z]+-)?keyframes|supports|document|namespace|page|viewport|host)\\b',
+    starts: {end: '[;{}]', returnEnd: true, contains: VALUE, relevance: 0}
+  };
+
+  // variable definitions and calls
+  var VAR_RULE_MODE = {
+    className: 'variable',
+    variants: [
+      // using more strict pattern for higher relevance to increase chances of Less detection.
+      // this is *the only* Less specific statement used in most of the sources, so...
+      // (we’ll still often loose to the css-parser unless there's '//' comment,
+      // simply because 1 variable just can't beat 99 properties :)
+      {begin: '@' + IDENT_RE + '\\s*:', relevance: 15},
+      {begin: '@' + IDENT_RE}
+    ],
+    starts: {end: '[;}]', returnEnd: true, contains: VALUE_WITH_RULESETS}
+  };
+
+  var SELECTOR_MODE = {
+    // first parse unambiguous selectors (i.e. those not starting with tag)
+    // then fall into the scary lookahead-discriminator variant.
+    // this mode also handles mixin definitions and calls
+    variants: [{
+      begin: '[\\.#:&\\[]', end: '[;{}]'  // mixin calls end with ';'
+      }, {
+      begin: INTERP_IDENT_RE + '[^;]*{',
+      end: '{'
+    }],
+    returnBegin: true,
+    returnEnd:   true,
+    illegal: '[<=\'$"]',
+    contains: [
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE,
+      MIXIN_GUARD_MODE,
+      IDENT_MODE('keyword',  'all\\b'),
+      IDENT_MODE('variable', '@{'  + IDENT_RE + '}'),     // otherwise it’s identified as tag
+      IDENT_MODE('tag',       INTERP_IDENT_RE + '%?', 0), // '%' for more consistent coloring of @keyframes "tags"
+      IDENT_MODE('id',       '#'   + INTERP_IDENT_RE),
+      IDENT_MODE('class',    '\\.' + INTERP_IDENT_RE, 0),
+      IDENT_MODE('keyword',  '&', 0),
+      FUNCT_MODE('pseudo',   ':not'),
+      FUNCT_MODE('keyword',  ':extend'),
+      IDENT_MODE('pseudo',   '::?' + INTERP_IDENT_RE),
+      {className: 'attr_selector', begin: '\\[', end: '\\]'},
+      {begin: '\\(', end: '\\)', contains: VALUE_WITH_RULESETS}, // argument list of parametric mixins
+      {begin: '!important'} // eat !important after mixin call or it will be colored as tag
+    ]
+  };
+
+  RULES.push(
+    hljs.C_LINE_COMMENT_MODE,
+    hljs.C_BLOCK_COMMENT_MODE,
+    AT_RULE_MODE,
+    VAR_RULE_MODE,
+    SELECTOR_MODE,
+    RULE_MODE
+  );
+
+  return {
+    case_insensitive: true,
+    illegal: '[=>\'/<($"]',
+    contains: RULES
+  };
+};
+},{}],56:[function(require,module,exports){
 module.exports = function(hljs) {
   var LISP_IDENT_RE = '[a-zA-Z_\\-\\+\\*\\/\\<\\=\\>\\&\\#][a-zA-Z0-9_\\-\\+\\*\\/\\<\\=\\>\\&\\#!]*';
-  var LISP_SIMPLE_NUMBER_RE = '(\\-|\\+)?\\d+(\\.\\d+|\\/\\d+)?((d|e|f|l|s)(\\+|\\-)?\\d+)?';
+  var MEC_RE = '\\|[^]*?\\|';
+  var LISP_SIMPLE_NUMBER_RE = '(\\-|\\+)?\\d+(\\.\\d+|\\/\\d+)?((d|e|f|l|s|D|E|F|L|S)(\\+|\\-)?\\d+)?';
   var SHEBANG = {
     className: 'shebang',
     begin: '^#!', end: '$'
@@ -3887,17 +5118,19 @@ module.exports = function(hljs) {
     className: 'number',
     variants: [
       {begin: LISP_SIMPLE_NUMBER_RE, relevance: 0},
-      {begin: '#b[0-1]+(/[0-1]+)?'},
-      {begin: '#o[0-7]+(/[0-7]+)?'},
-      {begin: '#x[0-9a-f]+(/[0-9a-f]+)?'},
-      {begin: '#c\\(' + LISP_SIMPLE_NUMBER_RE + ' +' + LISP_SIMPLE_NUMBER_RE, end: '\\)'}
+      {begin: '#(b|B)[0-1]+(/[0-1]+)?'},
+      {begin: '#(o|O)[0-7]+(/[0-7]+)?'},
+      {begin: '#(x|X)[0-9a-fA-F]+(/[0-9a-fA-F]+)?'},
+      {begin: '#(c|C)\\(' + LISP_SIMPLE_NUMBER_RE + ' +' + LISP_SIMPLE_NUMBER_RE, end: '\\)'}
     ]
   };
   var STRING = hljs.inherit(hljs.QUOTE_STRING_MODE, {illegal: null});
-  var COMMENT = {
-    className: 'comment',
-    begin: ';', end: '$'
-  };
+  var COMMENT = hljs.COMMENT(
+    ';', '$',
+    {
+      relevance: 0
+    }
+  );
   var VARIABLE = {
     className: 'variable',
     begin: '\\*', end: '\\*'
@@ -3906,37 +5139,59 @@ module.exports = function(hljs) {
     className: 'keyword',
     begin: '[:&]' + LISP_IDENT_RE
   };
+  var IDENT = {
+    begin: LISP_IDENT_RE,
+    relevance: 0
+  };
+  var MEC = {
+    begin: MEC_RE
+  };
   var QUOTED_LIST = {
     begin: '\\(', end: '\\)',
-    contains: ['self', LITERAL, STRING, NUMBER]
+    contains: ['self', LITERAL, STRING, NUMBER, IDENT]
   };
   var QUOTED = {
     className: 'quoted',
-    contains: [NUMBER, STRING, VARIABLE, KEYWORD, QUOTED_LIST],
+    contains: [NUMBER, STRING, VARIABLE, KEYWORD, QUOTED_LIST, IDENT],
     variants: [
       {
         begin: '[\'`]\\(', end: '\\)'
       },
       {
         begin: '\\(quote ', end: '\\)',
-        keywords: {title: 'quote'}
+        keywords: 'quote'
+      },
+      {
+        begin: '\'' + MEC_RE
       }
     ]
   };
   var QUOTED_ATOM = {
     className: 'quoted',
-    begin: '\'' + LISP_IDENT_RE
+    variants: [
+      {begin: '\'' + LISP_IDENT_RE},
+      {begin: '#\'' + LISP_IDENT_RE + '(::' + LISP_IDENT_RE + ')*'}
+    ]
   };
   var LIST = {
     className: 'list',
-    begin: '\\(', end: '\\)'
+    begin: '\\(\\s*', end: '\\)'
   };
   var BODY = {
     endsWithParent: true,
     relevance: 0
   };
-  LIST.contains = [{className: 'title', begin: LISP_IDENT_RE}, BODY];
-  BODY.contains = [QUOTED, QUOTED_ATOM, LIST, LITERAL, NUMBER, STRING, COMMENT, VARIABLE, KEYWORD];
+  LIST.contains = [
+    {
+      className: 'keyword',
+      variants: [
+        {begin: LISP_IDENT_RE},
+        {begin: MEC_RE}
+      ]
+    },
+    BODY
+  ];
+  BODY.contains = [QUOTED, QUOTED_ATOM, LIST, LITERAL, NUMBER, STRING, COMMENT, VARIABLE, KEYWORD, MEC, IDENT];
 
   return {
     illegal: /\S/,
@@ -3948,29 +5203,23 @@ module.exports = function(hljs) {
       COMMENT,
       QUOTED,
       QUOTED_ATOM,
-      LIST
+      LIST,
+      IDENT
     ]
   };
 };
-},{}],45:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 module.exports = function(hljs) {
   var VARIABLE = {
     className: 'variable', begin: '\\b[gtps][A-Z]+[A-Za-z0-9_\\-]*\\b|\\$_[A-Z]+',
     relevance: 0
   };
-  var COMMENT = {
-    className: 'comment', end: '$',
-    variants: [
-      hljs.C_BLOCK_COMMENT_MODE,
-      hljs.HASH_COMMENT_MODE,
-      {
-        begin: '--'
-      },
-      {
-        begin: '[^:]//'
-      }
-    ]
-  };
+  var COMMENT_MODES = [
+    hljs.C_BLOCK_COMMENT_MODE,
+    hljs.HASH_COMMENT_MODE,
+    hljs.COMMENT('--', '$'),
+    hljs.COMMENT('[^:]//', '$')
+  ];
   var TITLE1 = hljs.inherit(hljs.TITLE_MODE, {
     variants: [
       {begin: '\\b_*rig[A-Z]+[A-Za-z0-9_\\-]*'},
@@ -3982,8 +5231,10 @@ module.exports = function(hljs) {
     case_insensitive: false,
     keywords: {
       keyword:
+        '$_COOKIE $_FILES $_GET $_GET_BINARY $_GET_RAW $_POST $_POST_BINARY $_POST_RAW $_SESSION $_SERVER ' +
+        'codepoint codepoints segment segments codeunit codeunits sentence sentences trueWord trueWords paragraph ' +
         'after byte bytes english the until http forever descending using line real8 with seventh ' +
-        'for stdout finally element word fourth before black ninth sixth characters chars stderr ' +
+        'for stdout finally element word words fourth before black ninth sixth characters chars stderr ' +
         'uInt1 uInt1s uInt2 uInt2s stdin string lines relative rel any fifth items from middle mid ' +
         'at else of catch then third it file milliseconds seconds second secs sec int1 int1s int4 ' +
         'int4s internet int2 int2s normal text item last long detailed effective uInt4 uInt4s repeat ' +
@@ -4001,18 +5252,20 @@ module.exports = function(hljs) {
         'div mod wrap and or bitAnd bitNot bitOr bitXor among not in a an within ' +
         'contains ends with begins the keys of keys',
       built_in:
-        'put abs acos aliasReference annuity arrayDecode arrayEncode asin atan atan2 average avg base64Decode ' +
-        'base64Encode baseConvert binaryDecode binaryEncode byteToNum cachedURL cachedURLs charToNum ' +
-        'cipherNames commandNames compound compress constantNames cos date dateFormat decompress directories ' +
-        'diskSpace DNSServers exp exp1 exp2 exp10 extents files flushEvents folders format functionNames global ' +
-        'globals hasMemory hostAddress hostAddressToName hostName hostNameToAddress isNumber ISOToMac itemOffset ' +
+        'put abs acos aliasReference annuity arrayDecode arrayEncode asin atan atan2 average avg avgDev base64Decode ' +
+        'base64Encode baseConvert binaryDecode binaryEncode byteOffset byteToNum cachedURL cachedURLs charToNum ' +
+        'cipherNames codepointOffset codepointProperty codepointToNum codeunitOffset commandNames compound compress ' +
+        'constantNames cos date dateFormat decompress directories ' +
+        'diskSpace DNSServers exp exp1 exp2 exp10 extents files flushEvents folders format functionNames geometricMean global ' +
+        'globals hasMemory harmonicMean hostAddress hostAddressToName hostName hostNameToAddress isNumber ISOToMac itemOffset ' +
         'keys len length libURLErrorData libUrlFormData libURLftpCommand libURLLastHTTPHeaders libURLLastRHHeaders ' +
         'libUrlMultipartFormAddPart libUrlMultipartFormData libURLVersion lineOffset ln ln1 localNames log log2 log10 ' +
         'longFilePath lower macToISO matchChunk matchText matrixMultiply max md5Digest median merge millisec ' +
-        'millisecs millisecond milliseconds min monthNames num number numToByte numToChar offset open openfiles ' +
-        'openProcesses openProcessIDs openSockets paramCount param params peerAddress pendingMessages platform ' +
-        'processID random randomBytes replaceText result revCreateXMLTree revCreateXMLTreeFromFile revCurrentRecord ' +
-        'revCurrentRecordIsFirst revCurrentRecordIsLast revDatabaseColumnCount revDatabaseColumnIsNull ' +
+        'millisecs millisecond milliseconds min monthNames nativeCharToNum normalizeText num number numToByte numToChar ' +
+        'numToCodepoint numToNativeChar offset open openfiles openProcesses openProcessIDs openSockets ' +
+        'paragraphOffset paramCount param params peerAddress pendingMessages platform popStdDev populationStandardDeviation ' +
+        'populationVariance popVariance processID random randomBytes replaceText result revCreateXMLTree revCreateXMLTreeFromFile ' +
+        'revCurrentRecord revCurrentRecordIsFirst revCurrentRecordIsLast revDatabaseColumnCount revDatabaseColumnIsNull ' +
         'revDatabaseColumnLengths revDatabaseColumnNames revDatabaseColumnNamed revDatabaseColumnNumbered ' +
         'revDatabaseColumnTypes revDatabaseConnectResult revDatabaseCursors revDatabaseID revDatabaseTableNames ' +
         'revDatabaseType revDataFromQuery revdb_closeCursor revdb_columnbynumber revdb_columncount revdb_columnisnull ' +
@@ -4021,24 +5274,26 @@ module.exports = function(hljs) {
         'revdb_disconnect revdb_execute revdb_iseof revdb_isbof revdb_movefirst revdb_movelast revdb_movenext ' +
         'revdb_moveprev revdb_query revdb_querylist revdb_recordcount revdb_rollback revdb_tablenames ' +
         'revGetDatabaseDriverPath revNumberOfRecords revOpenDatabase revOpenDatabases revQueryDatabase ' +
-        'revQueryDatabaseBlob revQueryResult revQueryIsAtStart revQueryIsAtEnd revUnixFromMacPath ' +
-        'revXMLAttribute revXMLAttributes revXMLAttributeValues revXMLChildContents revXMLChildNames ' +
-        'revXMLFirstChild revXMLMatchingNode revXMLNextSibling revXMLNodeContents revXMLNumberOfChildren ' +
-        'revXMLParent revXMLPreviousSibling revXMLRootNode revXMLRPC_CreateRequest revXMLRPC_Documents ' +
-        'revXMLRPC_Error revXMLRPC_Execute revXMLRPC_GetHost revXMLRPC_GetMethod revXMLRPC_GetParam revXMLText ' +
+        'revQueryDatabaseBlob revQueryResult revQueryIsAtStart revQueryIsAtEnd revUnixFromMacPath revXMLAttribute ' +
+        'revXMLAttributes revXMLAttributeValues revXMLChildContents revXMLChildNames revXMLCreateTreeFromFileWithNamespaces ' +
+        'revXMLCreateTreeWithNamespaces revXMLDataFromXPathQuery revXMLEvaluateXPath revXMLFirstChild revXMLMatchingNode ' +
+        'revXMLNextSibling revXMLNodeContents revXMLNumberOfChildren revXMLParent revXMLPreviousSibling ' +
+        'revXMLRootNode revXMLRPC_CreateRequest revXMLRPC_Documents revXMLRPC_Error ' +
+        'revXMLRPC_GetHost revXMLRPC_GetMethod revXMLRPC_GetParam revXMLText revXMLRPC_Execute ' +
         'revXMLRPC_GetParamCount revXMLRPC_GetParamNode revXMLRPC_GetParamType revXMLRPC_GetPath revXMLRPC_GetPort ' +
         'revXMLRPC_GetProtocol revXMLRPC_GetRequest revXMLRPC_GetResponse revXMLRPC_GetSocket revXMLTree ' +
-        'revXMLTrees revXMLValidateDTD revZipDescribeItem revZipEnumerateItems revZipOpenArchives round ' +
-        'sec secs seconds sha1Digest shell shortFilePath sin specialFolderPath sqrt standardDeviation statRound ' +
-        'stdDev sum sysError systemVersion tan tempName tick ticks time to toLower toUpper transpose trunc ' +
-        'uniDecode uniEncode upper URLDecode URLEncode URLStatus value variableNames version waitDepth weekdayNames wordOffset ' +
-        'add breakpoint cancel clear local variable file word line folder directory URL close socket process ' +
+        'revXMLTrees revXMLValidateDTD revZipDescribeItem revZipEnumerateItems revZipOpenArchives round sampVariance ' +
+        'sec secs seconds sentenceOffset sha1Digest shell shortFilePath sin specialFolderPath sqrt standardDeviation statRound ' +
+        'stdDev sum sysError systemVersion tan tempName textDecode textEncode tick ticks time to tokenOffset toLower toUpper ' +
+        'transpose truewordOffset trunc uniDecode uniEncode upper URLDecode URLEncode URLStatus uuid value variableNames ' +
+        'variance version waitDepth weekdayNames wordOffset xsltApplyStylesheet xsltApplyStylesheetFromFile xsltLoadStylesheet ' +
+        'xsltLoadStylesheetFromFile add breakpoint cancel clear local variable file word line folder directory URL close socket process ' +
         'combine constant convert create new alias folder directory decrypt delete variable word line folder ' +
         'directory URL dispatch divide do encrypt filter get include intersect kill libURLDownloadToFile ' +
         'libURLFollowHttpRedirects libURLftpUpload libURLftpUploadFile libURLresetAll libUrlSetAuthCallback ' +
         'libURLSetCustomHTTPHeaders libUrlSetExpect100 libURLSetFTPListCommand libURLSetFTPMode libURLSetFTPStopTime ' +
-        'libURLSetStatusCallback load multiply socket process post seek rel relative read from process rename ' +
-        'replace require resetAll revAddXMLNode revAppendXML revCloseCursor revCloseDatabase revCommitDatabase ' +
+        'libURLSetStatusCallback load multiply socket prepare process post seek rel relative read from process rename ' +
+        'replace require resetAll resolve revAddXMLNode revAppendXML revCloseCursor revCloseDatabase revCommitDatabase ' +
         'revCopyFile revCopyFolder revCopyXMLNode revDeleteFolder revDeleteXMLNode revDeleteAllXMLTrees ' +
         'revDeleteXMLTree revExecuteSQL revGoURL revInsertXMLNode revMoveFolder revMoveToFirstRecord revMoveToLastRecord ' +
         'revMoveToNextRecord revMoveToPreviousRecord revMoveToRecord revMoveXMLNode revPutIntoXMLNode revRollBackDatabase ' +
@@ -4047,7 +5302,7 @@ module.exports = function(hljs) {
         'revXMLRPC_SetMethod revXMLRPC_SetPort revXMLRPC_SetProtocol revXMLRPC_SetSocket revZipAddItemWithData ' +
         'revZipAddItemWithFile revZipAddUncompressedItemWithData revZipAddUncompressedItemWithFile revZipCancel ' +
         'revZipCloseArchive revZipDeleteItem revZipExtractItemToFile revZipExtractItemToVariable revZipSetProgressCallback ' +
-        'revZipRenameItem revZipReplaceItemWithData revZipReplaceItemWithFile revZipOpenArchive send set sort split ' +
+        'revZipRenameItem revZipReplaceItemWithData revZipReplaceItemWithFile revZipOpenArchive send set sort split start stop ' +
         'subtract union unload wait write'
     },
     contains: [
@@ -4111,17 +5366,167 @@ module.exports = function(hljs) {
         className: 'preprocessor',
         begin: '\\?>'
       },
-      COMMENT,
       hljs.APOS_STRING_MODE,
       hljs.QUOTE_STRING_MODE,
       hljs.BINARY_NUMBER_MODE,
       hljs.C_NUMBER_MODE,
       TITLE1
-    ],
+    ].concat(COMMENT_MODES),
     illegal: ';$|^\\[|^='
   };
 };
-},{}],46:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
+module.exports = function(hljs) {
+  var KEYWORDS = {
+    keyword:
+      // JS keywords
+      'in if for while finally new do return else break catch instanceof throw try this ' +
+      'switch continue typeof delete debugger case default function var with ' +
+      // LiveScript keywords
+      'then unless until loop of by when and or is isnt not it that otherwise from to til fallthrough super ' +
+      'case default function var void const let enum export import native ' +
+      '__hasProp __extends __slice __bind __indexOf',
+    literal:
+      // JS literals
+      'true false null undefined ' +
+      // LiveScript literals
+      'yes no on off it that void',
+    built_in:
+      'npm require console print module global window document'
+  };
+  var JS_IDENT_RE = '[A-Za-z$_](?:\-[0-9A-Za-z$_]|[0-9A-Za-z$_])*';
+  var TITLE = hljs.inherit(hljs.TITLE_MODE, {begin: JS_IDENT_RE});
+  var SUBST = {
+    className: 'subst',
+    begin: /#\{/, end: /}/,
+    keywords: KEYWORDS
+  };
+  var SUBST_SIMPLE = {
+    className: 'subst',
+    begin: /#[A-Za-z$_]/, end: /(?:\-[0-9A-Za-z$_]|[0-9A-Za-z$_])*/,
+    keywords: KEYWORDS
+  };
+  var EXPRESSIONS = [
+    hljs.BINARY_NUMBER_MODE,
+    {
+      className: 'number',
+      begin: '(\\b0[xX][a-fA-F0-9_]+)|(\\b\\d(\\d|_\\d)*(\\.(\\d(\\d|_\\d)*)?)?(_*[eE]([-+]\\d(_\\d|\\d)*)?)?[_a-z]*)',
+      relevance: 0,
+      starts: {end: '(\\s*/)?', relevance: 0} // a number tries to eat the following slash to prevent treating it as a regexp
+    },
+    {
+      className: 'string',
+      variants: [
+        {
+          begin: /'''/, end: /'''/,
+          contains: [hljs.BACKSLASH_ESCAPE]
+        },
+        {
+          begin: /'/, end: /'/,
+          contains: [hljs.BACKSLASH_ESCAPE]
+        },
+        {
+          begin: /"""/, end: /"""/,
+          contains: [hljs.BACKSLASH_ESCAPE, SUBST, SUBST_SIMPLE]
+        },
+        {
+          begin: /"/, end: /"/,
+          contains: [hljs.BACKSLASH_ESCAPE, SUBST, SUBST_SIMPLE]
+        },
+        {
+          begin: /\\/, end: /(\s|$)/,
+          excludeEnd: true
+        }
+      ]
+    },
+    {
+      className: 'pi',
+      variants: [
+        {
+          begin: '//', end: '//[gim]*',
+          contains: [SUBST, hljs.HASH_COMMENT_MODE]
+        },
+        {
+          // regex can't start with space to parse x / 2 / 3 as two divisions
+          // regex can't start with *, and it supports an "illegal" in the main mode
+          begin: /\/(?![ *])(\\\/|.)*?\/[gim]*(?=\W|$)/
+        }
+      ]
+    },
+    {
+      className: 'property',
+      begin: '@' + JS_IDENT_RE
+    },
+    {
+      begin: '``', end: '``',
+      excludeBegin: true, excludeEnd: true,
+      subLanguage: 'javascript'
+    }
+  ];
+  SUBST.contains = EXPRESSIONS;
+
+  var PARAMS = {
+    className: 'params',
+    begin: '\\(', returnBegin: true,
+    /* We need another contained nameless mode to not have every nested
+    pair of parens to be called "params" */
+    contains: [
+      {
+        begin: /\(/, end: /\)/,
+        keywords: KEYWORDS,
+        contains: ['self'].concat(EXPRESSIONS)
+      }
+    ]
+  };
+
+  return {
+    aliases: ['ls'],
+    keywords: KEYWORDS,
+    illegal: /\/\*/,
+    contains: EXPRESSIONS.concat([
+      hljs.COMMENT('\\/\\*', '\\*\\/'),
+      hljs.HASH_COMMENT_MODE,
+      {
+        className: 'function',
+        contains: [TITLE, PARAMS],
+        returnBegin: true,
+        variants: [
+          {
+            begin: '(' + JS_IDENT_RE + '\\s*(?:=|:=)\\s*)?(\\(.*\\))?\\s*\\B\\->\\*?', end: '\\->\\*?'
+          },
+          {
+            begin: '(' + JS_IDENT_RE + '\\s*(?:=|:=)\\s*)?!?(\\(.*\\))?\\s*\\B[-~]{1,2}>\\*?', end: '[-~]{1,2}>\\*?'
+          },
+          {
+            begin: '(' + JS_IDENT_RE + '\\s*(?:=|:=)\\s*)?(\\(.*\\))?\\s*\\B!?[-~]{1,2}>\\*?', end: '!?[-~]{1,2}>\\*?'
+          }
+        ]
+      },
+      {
+        className: 'class',
+        beginKeywords: 'class',
+        end: '$',
+        illegal: /[:="\[\]]/,
+        contains: [
+          {
+            beginKeywords: 'extends',
+            endsWithParent: true,
+            illegal: /[:="\[\]]/,
+            contains: [TITLE]
+          },
+          TITLE
+        ]
+      },
+      {
+        className: 'attribute',
+        begin: JS_IDENT_RE + ':', end: ':',
+        returnBegin: true, returnEnd: true,
+        relevance: 0
+      }
+    ])
+  };
+};
+},{}],59:[function(require,module,exports){
 module.exports = function(hljs) {
   var OPENING_LONG_BRACKET = '\\[=*\\[';
   var CLOSING_LONG_BRACKET = '\\]=*\\]';
@@ -4130,17 +5535,16 @@ module.exports = function(hljs) {
     contains: ['self']
   };
   var COMMENTS = [
-    {
-      className: 'comment',
-      begin: '--(?!' + OPENING_LONG_BRACKET + ')', end: '$'
-    },
-    {
-      className: 'comment',
-      begin: '--' + OPENING_LONG_BRACKET, end: CLOSING_LONG_BRACKET,
-      contains: [LONG_BRACKETS],
-      relevance: 10
-    }
-  ]
+    hljs.COMMENT('--(?!' + OPENING_LONG_BRACKET + ')', '$'),
+    hljs.COMMENT(
+      '--' + OPENING_LONG_BRACKET,
+      CLOSING_LONG_BRACKET,
+      {
+        contains: [LONG_BRACKETS],
+        relevance: 10
+      }
+    )
+  ];
   return {
     lexemes: hljs.UNDERSCORE_IDENT_RE,
     keywords: {
@@ -4178,7 +5582,7 @@ module.exports = function(hljs) {
     ])
   };
 };
-},{}],47:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 module.exports = function(hljs) {
   var VARIABLE = {
     className: 'variable',
@@ -4215,6 +5619,7 @@ module.exports = function(hljs) {
       },
       {
         begin: /^\t+/, end: /$/,
+        relevance: 0,
         contains: [
           hljs.QUOTE_STRING_MODE,
           VARIABLE
@@ -4223,7 +5628,7 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],48:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     aliases: ['md', 'mkdown', 'mkd'],
@@ -4284,7 +5689,7 @@ module.exports = function(hljs) {
       },
       // using links - title and link
       {
-        begin: '\\[.+?\\][\\(\\[].+?[\\)\\]]',
+        begin: '\\[.+?\\][\\(\\[].*?[\\)\\]]',
         returnBegin: true,
         contains: [
           {
@@ -4308,24 +5713,24 @@ module.exports = function(hljs) {
         relevance: 10
       },
       {
-        begin: '^\\[\.+\\]:', end: '$',
+        begin: '^\\[\.+\\]:',
         returnBegin: true,
         contains: [
           {
             className: 'link_reference',
-            begin: '\\[', end: '\\]',
-            excludeBegin: true, excludeEnd: true
-          },
-          {
-            className: 'link_url',
-            begin: '\\s', end: '$'
+            begin: '\\[', end: '\\]:',
+            excludeBegin: true, excludeEnd: true,
+            starts: {
+              className: 'link_url',
+              end: '$'
+            }
           }
         ]
       }
     ]
   };
 };
-},{}],49:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     aliases: ['mma'],
@@ -4384,7 +5789,7 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],50:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 module.exports = function(hljs) {
   var COMMON_CONTAINS = [
     hljs.C_NUMBER_MODE,
@@ -4394,6 +5799,14 @@ module.exports = function(hljs) {
       contains: [hljs.BACKSLASH_ESCAPE, {begin: '\'\''}]
     }
   ];
+  var TRANSPOSE = {
+    relevance: 0,
+    contains: [
+      {
+        className: 'operator', begin: /'['\.]*/
+      }
+    ]
+  };
 
   return {
     keywords: {
@@ -4434,34 +5847,40 @@ module.exports = function(hljs) {
         ]
       },
       {
-        className: 'transposed_variable',
-        begin: '[a-zA-Z_][a-zA-Z_0-9]*(\'+[\\.\']*|[\\.\']+)', end: '',
-        relevance: 0
-      },
-      {
-        className: 'matrix',
-        begin: '\\[', end: '\\]\'*[\\.\']*',
-        contains: COMMON_CONTAINS,
-        relevance: 0
-      },
-      {
-        className: 'cell',
-        begin: '\\{',
-        contains: COMMON_CONTAINS,
-        illegal: /:/,
-        variants: [
-          {end: /\}'[\.']*/},
-          {end: /\}/, relevance: 0}
+        begin: /[a-zA-Z_][a-zA-Z_0-9]*'['\.]*/,
+        returnBegin: true,
+        relevance: 0,
+        contains: [
+          {begin: /[a-zA-Z_][a-zA-Z_0-9]*/, relevance: 0},
+          TRANSPOSE.contains[0]
         ]
       },
       {
-        className: 'comment',
-        begin: '\\%', end: '$'
-      }
+        className: 'matrix',
+        begin: '\\[', end: '\\]',
+        contains: COMMON_CONTAINS,
+        relevance: 0,
+        starts: TRANSPOSE
+      },
+      {
+        className: 'cell',
+        begin: '\\{', end: /}/,
+        contains: COMMON_CONTAINS,
+        relevance: 0,
+        starts: TRANSPOSE
+      },
+      {
+        // transpose operators at the end of a function call
+        begin: /\)/,
+        relevance: 0,
+        starts: TRANSPOSE
+      },
+      hljs.COMMENT('^\\s*\\%\\{\\s*$', '^\\s*\\%\\}\\s*$'),
+      hljs.COMMENT('\\%', '$')
     ].concat(COMMON_CONTAINS)
   };
 };
-},{}],51:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     keywords:
@@ -4691,37 +6110,125 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],52:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 module.exports = function(hljs) {
+  var KEYWORDS = {
+    keyword:
+      'module use_module import_module include_module end_module initialise ' +
+      'mutable initialize finalize finalise interface implementation pred ' +
+      'mode func type inst solver any_pred any_func is semidet det nondet ' +
+      'multi erroneous failure cc_nondet cc_multi typeclass instance where ' +
+      'pragma promise external trace atomic or_else require_complete_switch ' +
+      'require_det require_semidet require_multi require_nondet ' +
+      'require_cc_multi require_cc_nondet require_erroneous require_failure',
+    pragma:
+      'inline no_inline type_spec source_file fact_table obsolete memo ' +
+      'loop_check minimal_model terminates does_not_terminate ' +
+      'check_termination promise_equivalent_clauses',
+    preprocessor:
+      'foreign_proc foreign_decl foreign_code foreign_type ' +
+      'foreign_import_module foreign_export_enum foreign_export ' +
+      'foreign_enum may_call_mercury will_not_call_mercury thread_safe ' +
+      'not_thread_safe maybe_thread_safe promise_pure promise_semipure ' +
+      'tabled_for_io local untrailed trailed attach_to_io_state ' +
+      'can_pass_as_mercury_type stable will_not_throw_exception ' +
+      'may_modify_trail will_not_modify_trail may_duplicate ' +
+      'may_not_duplicate affects_liveness does_not_affect_liveness ' +
+      'doesnt_affect_liveness no_sharing unknown_sharing sharing',
+    built_in:
+      'some all not if then else true fail false try catch catch_any ' +
+      'semidet_true semidet_false semidet_fail impure_true impure semipure'
+  };
+
+  var TODO = {
+    className: 'label',
+    begin: 'XXX', end: '$', endsWithParent: true,
+    relevance: 0
+  };
+  var COMMENT = hljs.inherit(hljs.C_LINE_COMMENT_MODE, {begin: '%'});
+  var CCOMMENT = hljs.inherit(hljs.C_BLOCK_COMMENT_MODE, {relevance: 0});
+  COMMENT.contains.push(TODO);
+  CCOMMENT.contains.push(TODO);
+
+  var NUMCODE = {
+    className: 'number',
+    begin: "0'.\\|0[box][0-9a-fA-F]*"
+  };
+
+  var ATOM = hljs.inherit(hljs.APOS_STRING_MODE, {relevance: 0});
+  var STRING = hljs.inherit(hljs.QUOTE_STRING_MODE, {relevance: 0});
+  var STRING_FMT = {
+    className: 'constant',
+    begin: '\\\\[abfnrtv]\\|\\\\x[0-9a-fA-F]*\\\\\\|%[-+# *.0-9]*[dioxXucsfeEgGp]',
+    relevance: 0
+  };
+  STRING.contains.push(STRING_FMT);
+
+  var IMPLICATION = {
+    className: 'built_in',
+    variants: [
+      {begin: '<=>'},
+      {begin: '<=', relevance: 0},
+      {begin: '=>', relevance: 0},
+      {begin: '/\\\\'},
+      {begin: '\\\\/'}
+    ]
+  };
+
+  var HEAD_BODY_CONJUNCTION = {
+    className: 'built_in',
+    variants: [
+      {begin: ':-\\|-->'},
+      {begin: '=', relevance: 0}
+    ]
+  };
+
   return {
-    keywords: [
-      "environ vocabularies notations constructors definitions registrations theorems schemes requirements",
-      "begin end definition registration cluster existence pred func defpred deffunc theorem proof",
-      "let take assume then thus hence ex for st holds consider reconsider such that and in provided of as from",
-      "be being by means equals implies iff redefine define now not or attr is mode suppose per cases set",
-      "thesis contradiction scheme reserve struct",
-      "correctness compatibility coherence symmetry assymetry reflexivity irreflexivity",
-      "connectedness uniqueness commutativity idempotence involutiveness projectivity"
-    ].join(" "),
+    aliases: ['m', 'moo'],
+    keywords: KEYWORDS,
     contains: [
-      {
-        className: "comment",
-        begin: "::", end: "$"
-      }
+      IMPLICATION,
+      HEAD_BODY_CONJUNCTION,
+      COMMENT,
+      CCOMMENT,
+      NUMCODE,
+      hljs.NUMBER_MODE,
+      ATOM,
+      STRING,
+      {begin: /:-/} // relevance booster
     ]
   };
 };
-},{}],53:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
+module.exports = function(hljs) {
+  return {
+    keywords:
+      'environ vocabularies notations constructors definitions ' +
+      'registrations theorems schemes requirements begin end definition ' +
+      'registration cluster existence pred func defpred deffunc theorem ' +
+      'proof let take assume then thus hence ex for st holds consider ' +
+      'reconsider such that and in provided of as from be being by means ' +
+      'equals implies iff redefine define now not or attr is mode ' +
+      'suppose per cases set thesis contradiction scheme reserve struct ' +
+      'correctness compatibility coherence symmetry assymetry ' +
+      'reflexivity irreflexivity connectedness uniqueness commutativity ' +
+      'idempotence involutiveness projectivity',
+    contains: [
+      hljs.COMMENT('::', '$')
+    ]
+  };
+};
+},{}],67:[function(require,module,exports){
 module.exports = function(hljs) {
   var NUMBER = {
+    className: 'number', relevance: 0,
     variants: [
       {
-        className: 'number',
         begin: '[$][a-fA-F0-9]+'
       },
       hljs.NUMBER_MODE
     ]
-  }
+  };
 
   return {
     case_insensitive: true,
@@ -4736,21 +6243,20 @@ module.exports = function(hljs) {
       literal: 'true false null and or shl shr mod'
     },
     contains: [
-      {
-        className: 'comment',
-        begin: '#rem', end: '#end'
-      },
-      {
-        className: 'comment',
-        begin: "'", end: '$',
-        relevance: 0
-      },
+      hljs.COMMENT('#rem', '#end'),
+      hljs.COMMENT(
+        "'",
+        '$',
+        {
+          relevance: 0
+        }
+      ),
       {
         className: 'function',
         beginKeywords: 'function method', end: '[(=:]|$',
         illegal: /\n/,
         contains: [
-          hljs.UNDERSCORE_TITLE_MODE,
+          hljs.UNDERSCORE_TITLE_MODE
         ]
       },
       {
@@ -4790,7 +6296,7 @@ module.exports = function(hljs) {
     ]
   }
 };
-},{}],54:[function(require,module,exports){
+},{}],68:[function(require,module,exports){
 module.exports = function(hljs) {
   var VAR = {
     className: 'variable',
@@ -4822,7 +6328,8 @@ module.exports = function(hljs) {
       },
       {
         className: 'url',
-        begin: '([a-z]+):/', end: '\\s', endsWithParent: true, excludeEnd: true
+        begin: '([a-z]+):/', end: '\\s', endsWithParent: true, excludeEnd: true,
+        contains: [VAR]
       },
       {
         className: 'regexp',
@@ -4871,9 +6378,10 @@ module.exports = function(hljs) {
     illegal: '[^\\s\\}]'
   };
 };
-},{}],55:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
+    aliases: ['nim'],
     keywords: {
       keyword: 'addr and as asm bind block break|0 case|0 cast const|0 continue|0 converter discard distinct|10 div do elif else|0 end|0 enum|0 except export finally for from generic if|0 import|0 in include|0 interface is isnot|10 iterator|10 let|0 macro method|10 mixin mod nil not notin|10 object|0 of or out proc|10 ptr raise ref|10 return shl shr static template|10 try|0 tuple type|0 using|0 var|0 when while|0 with without xor yield',
       literal: 'shared guarded stdin stdout stderr result|10 true false'
@@ -4892,13 +6400,9 @@ module.exports = function(hljs) {
         className: 'string',
         begin: /([a-zA-Z]\w*)?"""/,
         end: /"""/
-      }, {
-        className: 'string',
-        begin: /"/,
-        end: /"/,
-        illegal: /\n/,
-        contains: [{begin: /\\./}]
-      }, {
+      },
+      hljs.QUOTE_STRING_MODE,
+      {
         className: 'type',
         begin: /\b[A-Z]\w+\b/,
         relevance: 0
@@ -4926,7 +6430,7 @@ module.exports = function(hljs) {
     ]
   }
 };
-},{}],56:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 module.exports = function(hljs) {
   var NIX_KEYWORDS = {
     keyword: 'rec with let in inherit assert if else then',
@@ -4937,7 +6441,7 @@ module.exports = function(hljs) {
   var ANTIQUOTE = {
     className: 'subst',
     begin: /\$\{/,
-    end: /\}/,
+    end: /}/,
     keywords: NIX_KEYWORDS
   };
   var ATTRS = {
@@ -4968,7 +6472,7 @@ module.exports = function(hljs) {
     SINGLE_QUOTE,
     DOUBLE_QUOTE,
     ATTRS
-  ];  
+  ];
   ANTIQUOTE.contains = EXPRESSIONS;
   return {
     aliases: ["nixos"],
@@ -4976,7 +6480,7 @@ module.exports = function(hljs) {
     contains: EXPRESSIONS
   };
 };
-},{}],57:[function(require,module,exports){
+},{}],71:[function(require,module,exports){
 module.exports = function(hljs) {
   var CONSTANTS = {
     className: 'symbol',
@@ -5011,7 +6515,7 @@ module.exports = function(hljs) {
   var COMPILER ={
     // !compiler_flags
     className: 'constant',
-    begin: '\\!(addincludedir|addplugindir|appendfile|cd|define|delfile|echo|else|endif|error|execute|finalize|getdllversionsystem|ifdef|ifmacrodef|ifmacrondef|ifndef|if|include|insertmacro|macroend|macro|packhdr|searchparse|searchreplace|tempfile|undef|verbose|warning)'
+    begin: '\\!(addincludedir|addplugindir|appendfile|cd|define|delfile|echo|else|endif|error|execute|finalize|getdllversionsystem|ifdef|ifmacrodef|ifmacrondef|ifndef|if|include|insertmacro|macroend|macro|makensis|packhdr|searchparse|searchreplace|tempfile|undef|verbose|warning)'
   };
 
   return {
@@ -5040,11 +6544,13 @@ module.exports = function(hljs) {
           LANGUAGES
         ]
       },
-      { // line comments
-        className: 'comment',
-        begin: ';', end: '$',
-        relevance: 0
-      },
+      hljs.COMMENT(
+        ';',
+        '$',
+        {
+          relevance: 0
+        }
+      ),
       {
         className: 'function',
         beginKeywords: 'Function PageEx Section SectionGroup SubSection', end: '$'
@@ -5062,8 +6568,12 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],58:[function(require,module,exports){
+},{}],72:[function(require,module,exports){
 module.exports = function(hljs) {
+  var API_CLASS = {
+    className: 'built_in',
+    begin: '(AV|CA|CF|CG|CI|MK|MP|NS|UI)\\w+',
+  };
   var OBJC_KEYWORDS = {
     keyword:
       'int float while char export sizeof typedef const struct for union ' +
@@ -5076,30 +6586,19 @@ module.exports = function(hljs) {
       '@private @protected @public @try @property @end @throw @catch @finally ' +
       '@autoreleasepool @synthesize @dynamic @selector @optional @required',
     literal:
-    	'false true FALSE TRUE nil YES NO NULL',
+      'false true FALSE TRUE nil YES NO NULL',
     built_in:
-      'NSString NSDictionary CGRect CGPoint UIButton UILabel UITextView UIWebView MKMapView ' +
-      'NSView NSViewController NSWindow NSWindowController NSSet NSUUID NSIndexSet ' +
-      'UISegmentedControl NSObject UITableViewDelegate UITableViewDataSource NSThread ' +
-      'UIActivityIndicator UITabbar UIToolBar UIBarButtonItem UIImageView NSAutoreleasePool ' +
-      'UITableView BOOL NSInteger CGFloat NSException NSLog NSMutableString NSMutableArray ' +
-      'NSMutableDictionary NSURL NSIndexPath CGSize UITableViewCell UIView UIViewController ' +
-      'UINavigationBar UINavigationController UITabBarController UIPopoverController ' +
-      'UIPopoverControllerDelegate UIImage NSNumber UISearchBar NSFetchedResultsController ' +
-      'NSFetchedResultsChangeType UIScrollView UIScrollViewDelegate UIEdgeInsets UIColor ' +
-      'UIFont UIApplication NSNotFound NSNotificationCenter NSNotification ' +
-      'UILocalNotification NSBundle NSFileManager NSTimeInterval NSDate NSCalendar ' +
-      'NSUserDefaults UIWindow NSRange NSArray NSError NSURLRequest NSURLConnection ' +
-      'UIInterfaceOrientation MPMoviePlayerController dispatch_once_t ' +
-      'dispatch_queue_t dispatch_sync dispatch_async dispatch_once'
+      'BOOL dispatch_once_t dispatch_queue_t dispatch_sync dispatch_async dispatch_once'
   };
   var LEXEMES = /[a-zA-Z@][a-zA-Z0-9_]*/;
   var CLASS_KEYWORDS = '@interface @class @protocol @implementation';
   return {
     aliases: ['m', 'mm', 'objc', 'obj-c'],
-    keywords: OBJC_KEYWORDS, lexemes: LEXEMES,
+    keywords: OBJC_KEYWORDS,
+    lexemes: LEXEMES,
     illegal: '</',
     contains: [
+      API_CLASS,
       hljs.C_LINE_COMMENT_MODE,
       hljs.C_BLOCK_COMMENT_MODE,
       hljs.C_NUMBER_MODE,
@@ -5148,51 +6647,77 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],59:[function(require,module,exports){
+},{}],73:[function(require,module,exports){
 module.exports = function(hljs) {
+  /* missing support for heredoc-like string (OCaml 4.0.2+) */
   return {
     aliases: ['ml'],
     keywords: {
       keyword:
         'and as assert asr begin class constraint do done downto else end ' +
-        'exception external false for fun function functor if in include ' +
-        'inherit initializer land lazy let lor lsl lsr lxor match method ' +
-        'mod module mutable new object of open or private rec ref sig struct ' +
-        'then to true try type val virtual when while with parser value',
+        'exception external for fun function functor if in include ' +
+        'inherit! inherit initializer land lazy let lor lsl lsr lxor match method!|10 method ' +
+        'mod module mutable new object of open! open or private rec sig struct ' +
+        'then to try type val! val virtual when while with ' +
+        /* camlp4 */
+        'parser value',
       built_in:
-        'bool char float int list unit array exn option int32 int64 nativeint ' +
-        'format4 format6 lazy_t in_channel out_channel string'
+        /* built-in types */
+        'array bool bytes char exn|5 float int int32 int64 list lazy_t|5 nativeint|5 string unit ' +
+        /* (some) types in Pervasives */
+        'in_channel out_channel ref',
+      literal:
+        'true false'
     },
-    illegal: /\/\//,
+    illegal: /\/\/|>>/,
+    lexemes: '[a-z_]\\w*!?',
     contains: [
       {
-        className: 'string',
-        begin: '"""', end: '"""'
+        className: 'literal',
+        begin: '\\[(\\|\\|)?\\]|\\(\\)'
       },
-      {
-        className: 'comment',
-        begin: '\\(\\*', end: '\\*\\)',
-        contains: ['self']
+      hljs.COMMENT(
+        '\\(\\*',
+        '\\*\\)',
+        {
+          contains: ['self']
+        }
+      ),
+      { /* type variable */
+        className: 'symbol',
+        begin: '\'[A-Za-z_](?!\')[\\w\']*'
+        /* the grammar is ambiguous on how 'a'b should be interpreted but not the compiler */
       },
-      {
-        className: 'class',
-        beginKeywords: 'type', end: '\\(|=|$', excludeEnd: true,
-        contains: [
-          hljs.UNDERSCORE_TITLE_MODE
-        ]
+      { /* polymorphic variant */
+        className: 'tag',
+        begin: '`[A-Z][\\w\']*'
       },
-      {
-        className: 'annotation',
-        begin: '\\[<', end: '>\\]'
+      { /* module or constructor */
+        className: 'type',
+        begin: '\\b[A-Z][\\w\']*',
+        relevance: 0
       },
-      hljs.C_BLOCK_COMMENT_MODE,
-      hljs.inherit(hljs.APOS_STRING_MODE, {illegal: null}),
+      { /* don't color identifiers, but safely catch all identifiers with '*/
+        begin: '[a-z_]\\w*\'[\\w\']*'
+      },
+      hljs.inherit(hljs.APOS_STRING_MODE, {className: 'char', relevance: 0}),
       hljs.inherit(hljs.QUOTE_STRING_MODE, {illegal: null}),
-      hljs.C_NUMBER_MODE
+      {
+        className: 'number',
+        begin:
+          '\\b(0[xX][a-fA-F0-9_]+[Lln]?|' +
+          '0[oO][0-7_]+[Lln]?|' +
+          '0[bB][01_]+[Lln]?|' +
+          '[0-9][0-9_]*([Lln]|(\\.[0-9_]*)?([eE][-+]?[0-9_]+)?)?)',
+        relevance: 0
+      },
+      {
+        begin: /[-=]>/ // relevance booster
+      }
     ]
   }
 };
-},{}],60:[function(require,module,exports){
+},{}],74:[function(require,module,exports){
 module.exports = function(hljs) {
   var OXYGENE_KEYWORDS = 'abstract add and array as asc aspect assembly async begin break block by case class concat const copy constructor continue '+
     'create default delegate desc distinct div do downto dynamic each else empty end ensure enum equals event except exit extension external false '+
@@ -5202,16 +6727,20 @@ module.exports = function(hljs) {
     'record reintroduce remove repeat require result reverse sealed select self sequence set shl shr skip static step soft take then to true try tuple '+
     'type union unit unsafe until uses using var virtual raises volatile where while with write xor yield await mapped deprecated stdcall cdecl pascal '+
     'register safecall overload library platform reference packed strict published autoreleasepool selector strong weak unretained';
-  var CURLY_COMMENT =  {
-    className: 'comment',
-    begin: '{', end: '}',
-    relevance: 0
-  };
-  var PAREN_COMMENT = {
-    className: 'comment',
-    begin: '\\(\\*', end: '\\*\\)',
-    relevance: 10
-  };
+  var CURLY_COMMENT =  hljs.COMMENT(
+    '{',
+    '}',
+    {
+      relevance: 0
+    }
+  );
+  var PAREN_COMMENT = hljs.COMMENT(
+    '\\(\\*',
+    '\\*\\)',
+    {
+      relevance: 10
+    }
+  );
   var STRING = {
     className: 'string',
     begin: '\'', end: '\'',
@@ -5238,7 +6767,7 @@ module.exports = function(hljs) {
   return {
     case_insensitive: true,
     keywords: OXYGENE_KEYWORDS,
-    illegal: '("|\\$[G-Zg-z]|\\/\\*|</)',
+    illegal: '("|\\$[G-Zg-z]|\\/\\*|</|=>|->)',
     contains: [
       CURLY_COMMENT, PAREN_COMMENT, hljs.C_LINE_COMMENT_MODE,
       STRING, CHAR_STRING,
@@ -5257,26 +6786,29 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],61:[function(require,module,exports){
+},{}],75:[function(require,module,exports){
 module.exports = function(hljs) {
+  var CURLY_SUBCOMMENT = hljs.COMMENT(
+    '{',
+    '}',
+    {
+      contains: ['self']
+    }
+  );
   return {
     subLanguage: 'xml', relevance: 0,
     contains: [
-      {
-        className: 'comment',
-        begin: '^#', end: '$'
-      },
-      {
-        className: 'comment',
-        begin: '\\^rem{', end: '}',
-        relevance: 10,
-        contains: [
-          {
-            begin: '{', end: '}',
-            contains: ['self']
-          }
-        ]
-      },
+      hljs.COMMENT('^#', '$'),
+      hljs.COMMENT(
+        '\\^rem{',
+        '}',
+        {
+          relevance: 10,
+          contains: [
+            CURLY_SUBCOMMENT
+          ]
+        }
+      ),
       {
         className: 'preprocessor',
         begin: '^@(?:BASE|USE|CLASS|OPTIONS)$',
@@ -5302,7 +6834,7 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],62:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 module.exports = function(hljs) {
   var PERL_KEYWORDS = 'getpwent getservent quotemeta msgrcv scalar kill dbmclose undef lc ' +
     'ma syswrite tr send umask sysopen shmwrite vec qx utime local oct semctl localtime ' +
@@ -5336,24 +6868,29 @@ module.exports = function(hljs) {
     className: 'variable',
     variants: [
       {begin: /\$\d/},
-      {begin: /[\$\%\@](\^\w\b|#\w+(\:\:\w+)*|{\w+}|\w+(\:\:\w*)*)/},
-      {begin: /[\$\%\@][^\s\w{]/, relevance: 0}
+      {begin: /[\$%@](\^\w\b|#\w+(::\w+)*|{\w+}|\w+(::\w*)*)/},
+      {begin: /[\$%@][^\s\w{]/, relevance: 0}
     ]
   };
-  var COMMENT = {
-    className: 'comment',
-    begin: '^(__END__|__DATA__)', end: '\\n$',
-    relevance: 5
-  };
+  var COMMENT = hljs.COMMENT(
+    '^(__END__|__DATA__)',
+    '\\n$',
+    {
+      relevance: 5
+    }
+  );
   var STRING_CONTAINS = [hljs.BACKSLASH_ESCAPE, SUBST, VAR];
   var PERL_DEFAULT_CONTAINS = [
     VAR,
     hljs.HASH_COMMENT_MODE,
     COMMENT,
-    {
-      className: 'comment',
-      begin: '^\\=\\w', end: '\\=cut', endsWithParent: true
-    },
+    hljs.COMMENT(
+      '^\\=\\w',
+      '\\=cut',
+      {
+        endsWithParent: true
+      }
+    ),
     METHOD,
     {
       className: 'string',
@@ -5451,10 +6988,62 @@ module.exports = function(hljs) {
     contains: PERL_DEFAULT_CONTAINS
   };
 };
-},{}],63:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
+module.exports = function(hljs) {
+  var MACRO = {
+    className: 'variable',
+    begin: /\$[\w\d#@][\w\d_]*/
+  };
+  var TABLE = {
+    className: 'variable',
+    begin: /</, end: />/
+  };
+  var QUOTE_STRING = {
+    className: 'string',
+    begin: /"/, end: /"/
+  };
+
+  return {
+    aliases: ['pf.conf'],
+    lexemes: /[a-z0-9_<>-]+/,
+    keywords: {
+      built_in: /* block match pass are "actions" in pf.conf(5), the rest are
+                 * lexically similar top-level commands.
+                 */
+        'block match pass load anchor|5 antispoof|10 set table',
+      keyword:
+        'in out log quick on rdomain inet inet6 proto from port os to route' +
+        'allow-opts divert-packet divert-reply divert-to flags group icmp-type' +
+        'icmp6-type label once probability recieved-on rtable prio queue' +
+        'tos tag tagged user keep fragment for os drop' +
+        'af-to|10 binat-to|10 nat-to|10 rdr-to|10 bitmask least-stats random round-robin' +
+        'source-hash static-port' +
+        'dup-to reply-to route-to' +
+        'parent bandwidth default min max qlimit' +
+        'block-policy debug fingerprints hostid limit loginterface optimization' +
+        'reassemble ruleset-optimization basic none profile skip state-defaults' +
+        'state-policy timeout' +
+        'const counters persist' +
+        'no modulate synproxy state|5 floating if-bound no-sync pflow|10 sloppy' +
+        'source-track global rule max-src-nodes max-src-states max-src-conn' +
+        'max-src-conn-rate overload flush' +
+        'scrub|5 max-mss min-ttl no-df|10 random-id',
+      literal:
+        'all any no-route self urpf-failed egress|5 unknown',
+    },
+    contains: [
+      hljs.HASH_COMMENT_MODE,
+      hljs.NUMBER_MODE,
+      hljs.QUOTE_STRING_MODE,
+      MACRO,
+      TABLE,
+    ]
+  };
+};
+},{}],78:[function(require,module,exports){
 module.exports = function(hljs) {
   var VARIABLE = {
-    className: 'variable', begin: '(\\$|->)+[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*'
+    className: 'variable', begin: '\\$+[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*'
   };
   var PREPROCESSOR = {
     className: 'preprocessor', begin: /<\?(php)?|\?>/
@@ -5489,22 +7078,28 @@ module.exports = function(hljs) {
     contains: [
       hljs.C_LINE_COMMENT_MODE,
       hljs.HASH_COMMENT_MODE,
-      {
-        className: 'comment',
-        begin: '/\\*', end: '\\*/',
-        contains: [
-          {
-            className: 'phpdoc',
-            begin: '\\s@[A-Za-z]+'
-          },
-          PREPROCESSOR
-        ]
-      },
-      {
-          className: 'comment',
-          begin: '__halt_compiler.+?;', endsWithParent: true,
-          keywords: '__halt_compiler', lexemes: hljs.UNDERSCORE_IDENT_RE
-      },
+      hljs.COMMENT(
+        '/\\*',
+        '\\*/',
+        {
+          contains: [
+            {
+              className: 'phpdoc',
+              begin: '\\s@[A-Za-z]+'
+            },
+            PREPROCESSOR
+          ]
+        }
+      ),
+      hljs.COMMENT(
+        '__halt_compiler.+?;',
+        false,
+        {
+          endsWithParent: true,
+          keywords: '__halt_compiler',
+          lexemes: hljs.UNDERSCORE_IDENT_RE
+        }
+      ),
       {
         className: 'string',
         begin: '<<<[\'"]?\\w+[\'"]?$', end: '^\\w+;',
@@ -5512,6 +7107,10 @@ module.exports = function(hljs) {
       },
       PREPROCESSOR,
       VARIABLE,
+      {
+        // swallow composed identifiers to avoid parsing them as keywords
+        begin: /(::|->)+[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*/
+      },
       {
         className: 'function',
         beginKeywords: 'function', end: /[;{]/, excludeEnd: true,
@@ -5536,10 +7135,7 @@ module.exports = function(hljs) {
         beginKeywords: 'class interface', end: '{', excludeEnd: true,
         illegal: /[:\(\$"]/,
         contains: [
-          {
-            beginKeywords: 'extends implements',
-            relevance: 10
-          },
+          {beginKeywords: 'extends implements'},
           hljs.UNDERSCORE_TITLE_MODE
         ]
       },
@@ -5560,7 +7156,107 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],64:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
+module.exports = function(hljs) {
+  var backtickEscape = {
+    begin: '`[\\s\\S]',
+    relevance: 0
+  };
+  var dollarEscape = {
+    begin: '\\$\\$[\\s\\S]',
+    relevance: 0
+  };
+  var VAR = {
+    className: 'variable',
+    variants: [
+      {begin: /\$[\w\d][\w\d_:]*/}
+    ]
+  };
+  var QUOTE_STRING = {
+    className: 'string',
+    begin: /"/, end: /"/,
+    contains: [
+      backtickEscape,
+      VAR,
+      {
+        className: 'variable',
+        begin: /\$[A-z]/, end: /[^A-z]/
+      }
+    ]
+  };
+  var APOS_STRING = {
+    className: 'string',
+    begin: /'/, end: /'/
+  };
+
+  return {
+    aliases: ['ps'],
+    lexemes: /-?[A-z\.\-]+/,
+    case_insensitive: true,
+    keywords: {
+      keyword: 'if else foreach return function do while until elseif begin for trap data dynamicparam end break throw param continue finally in switch exit filter try process catch',
+      literal: '$null $true $false',
+      built_in: 'Add-Content Add-History Add-Member Add-PSSnapin Clear-Content Clear-Item Clear-Item Property Clear-Variable Compare-Object ConvertFrom-SecureString Convert-Path ConvertTo-Html ConvertTo-SecureString Copy-Item Copy-ItemProperty Export-Alias Export-Clixml Export-Console Export-Csv ForEach-Object Format-Custom Format-List Format-Table Format-Wide Get-Acl Get-Alias Get-AuthenticodeSignature Get-ChildItem Get-Command Get-Content Get-Credential Get-Culture Get-Date Get-EventLog Get-ExecutionPolicy Get-Help Get-History Get-Host Get-Item Get-ItemProperty Get-Location Get-Member Get-PfxCertificate Get-Process Get-PSDrive Get-PSProvider Get-PSSnapin Get-Service Get-TraceSource Get-UICulture Get-Unique Get-Variable Get-WmiObject Group-Object Import-Alias Import-Clixml Import-Csv Invoke-Expression Invoke-History Invoke-Item Join-Path Measure-Command Measure-Object Move-Item Move-ItemProperty New-Alias New-Item New-ItemProperty New-Object New-PSDrive New-Service New-TimeSpan New-Variable Out-Default Out-File Out-Host Out-Null Out-Printer Out-String Pop-Location Push-Location Read-Host Remove-Item Remove-ItemProperty Remove-PSDrive Remove-PSSnapin Remove-Variable Rename-Item Rename-ItemProperty Resolve-Path Restart-Service Resume-Service Select-Object Select-String Set-Acl Set-Alias Set-AuthenticodeSignature Set-Content Set-Date Set-ExecutionPolicy Set-Item Set-ItemProperty Set-Location Set-PSDebug Set-Service Set-TraceSource Set-Variable Sort-Object Split-Path Start-Service Start-Sleep Start-Transcript Stop-Process Stop-Service Stop-Transcript Suspend-Service Tee-Object Test-Path Trace-Command Update-FormatData Update-TypeData Where-Object Write-Debug Write-Error Write-Host Write-Output Write-Progress Write-Verbose Write-Warning',
+      operator: '-ne -eq -lt -gt -ge -le -not -like -notlike -match -notmatch -contains -notcontains -in -notin -replace'
+    },
+    contains: [
+      hljs.HASH_COMMENT_MODE,
+      hljs.NUMBER_MODE,
+      QUOTE_STRING,
+      APOS_STRING,
+      VAR
+    ]
+  };
+};
+},{}],80:[function(require,module,exports){
+module.exports = function(hljs) {
+  return {
+    keywords: {
+      keyword: 'BufferedReader PVector PFont PImage PGraphics HashMap boolean byte char color ' +
+        'double float int long String Array FloatDict FloatList IntDict IntList JSONArray JSONObject ' +
+        'Object StringDict StringList Table TableRow XML ' +
+        // Java keywords
+        'false synchronized int abstract float private char boolean static null if const ' +
+        'for true while long throw strictfp finally protected import native final return void ' +
+        'enum else break transient new catch instanceof byte super volatile case assert short ' +
+        'package default double public try this switch continue throws protected public private',
+      constant: 'P2D P3D HALF_PI PI QUARTER_PI TAU TWO_PI',
+      variable: 'displayHeight displayWidth mouseY mouseX mousePressed pmouseX pmouseY key ' +
+        'keyCode pixels focused frameCount frameRate height width',
+      title: 'setup draw',
+      built_in: 'size createGraphics beginDraw createShape loadShape PShape arc ellipse line point ' +
+        'quad rect triangle bezier bezierDetail bezierPoint bezierTangent curve curveDetail curvePoint ' +
+        'curveTangent curveTightness shape shapeMode beginContour beginShape bezierVertex curveVertex ' +
+        'endContour endShape quadraticVertex vertex ellipseMode noSmooth rectMode smooth strokeCap ' +
+        'strokeJoin strokeWeight mouseClicked mouseDragged mouseMoved mousePressed mouseReleased ' +
+        'mouseWheel keyPressed keyPressedkeyReleased keyTyped print println save saveFrame day hour ' +
+        'millis minute month second year background clear colorMode fill noFill noStroke stroke alpha ' +
+        'blue brightness color green hue lerpColor red saturation modelX modelY modelZ screenX screenY ' +
+        'screenZ ambient emissive shininess specular add createImage beginCamera camera endCamera frustum ' +
+        'ortho perspective printCamera printProjection cursor frameRate noCursor exit loop noLoop popStyle ' +
+        'pushStyle redraw binary boolean byte char float hex int str unbinary unhex join match matchAll nf ' +
+        'nfc nfp nfs split splitTokens trim append arrayCopy concat expand reverse shorten sort splice subset ' +
+        'box sphere sphereDetail createInput createReader loadBytes loadJSONArray loadJSONObject loadStrings ' +
+        'loadTable loadXML open parseXML saveTable selectFolder selectInput beginRaw beginRecord createOutput ' +
+        'createWriter endRaw endRecord PrintWritersaveBytes saveJSONArray saveJSONObject saveStream saveStrings ' +
+        'saveXML selectOutput popMatrix printMatrix pushMatrix resetMatrix rotate rotateX rotateY rotateZ scale ' +
+        'shearX shearY translate ambientLight directionalLight lightFalloff lights lightSpecular noLights normal ' +
+        'pointLight spotLight image imageMode loadImage noTint requestImage tint texture textureMode textureWrap ' +
+        'blend copy filter get loadPixels set updatePixels blendMode loadShader PShaderresetShader shader createFont ' +
+        'loadFont text textFont textAlign textLeading textMode textSize textWidth textAscent textDescent abs ceil ' +
+        'constrain dist exp floor lerp log mag map max min norm pow round sq sqrt acos asin atan atan2 cos degrees ' +
+        'radians sin tan noise noiseDetail noiseSeed random randomGaussian randomSeed'
+    },
+    contains: [
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE,
+      hljs.APOS_STRING_MODE,
+      hljs.QUOTE_STRING_MODE,
+      hljs.C_NUMBER_MODE
+    ]
+  };
+};
+},{}],81:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     contains: [
@@ -5602,7 +7298,96 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],65:[function(require,module,exports){
+},{}],82:[function(require,module,exports){
+module.exports = function(hljs) {
+
+  var ATOM = {
+
+    className: 'atom',
+    begin: /[a-z][A-Za-z0-9_]*/,
+    relevance: 0
+  };
+
+  var VAR = {
+
+    className: 'name',
+    variants: [
+      {begin: /[A-Z][a-zA-Z0-9_]*/},
+      {begin: /_[A-Za-z0-9_]*/},
+    ],
+    relevance: 0
+  };
+
+  var PARENTED = {
+
+    begin: /\(/,
+    end: /\)/,
+    relevance: 0
+  };
+
+  var LIST = {
+
+    begin: /\[/,
+    end: /\]/
+  };
+
+  var LINE_COMMENT = {
+
+    className: 'comment',
+    begin: /%/, end: /$/,
+    contains: [hljs.PHRASAL_WORDS_MODE]
+  };
+
+  var BACKTICK_STRING = {
+
+    className: 'string',
+    begin: /`/, end: /`/,
+    contains: [hljs.BACKSLASH_ESCAPE]
+  };
+
+  var CHAR_CODE = {
+
+    className: 'string', // 0'a etc.
+    begin: /0\'(\\\'|.)/
+  };
+
+  var SPACE_CODE = {
+
+    className: 'string',
+    begin: /0\'\\s/ // 0'\s
+  };
+
+  var PRED_OP = { // relevance booster
+    begin: /:-/
+  };
+
+  var inner = [
+
+    ATOM,
+    VAR,
+    PARENTED,
+    PRED_OP,
+    LIST,
+    LINE_COMMENT,
+    hljs.C_BLOCK_COMMENT_MODE,
+    hljs.QUOTE_STRING_MODE,
+    hljs.APOS_STRING_MODE,
+    BACKTICK_STRING,
+    CHAR_CODE,
+    SPACE_CODE,
+    hljs.C_NUMBER_MODE
+  ];
+
+  PARENTED.contains = inner;
+  LIST.contains = inner;
+
+  return {
+    contains: inner.concat([
+      {begin: /\.$/} // relevance booster
+    ])
+  };
+};
+},{}],83:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     keywords: {
@@ -5639,7 +7424,114 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],66:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
+module.exports = function(hljs) {
+  var PUPPET_TYPE_REFERENCE =
+      'augeas computer cron exec file filebucket host interface k5login macauthorization mailalias maillist mcx mount nagios_command ' +
+      'nagios_contact nagios_contactgroup nagios_host nagios_hostdependency nagios_hostescalation nagios_hostextinfo nagios_hostgroup nagios_service firewall ' +
+      'nagios_servicedependency nagios_serviceescalation nagios_serviceextinfo nagios_servicegroup nagios_timeperiod notify package resources ' +
+      'router schedule scheduled_task selboolean selmodule service ssh_authorized_key sshkey stage tidy user vlan yumrepo zfs zone zpool';
+
+  var PUPPET_ATTRIBUTES =
+    /* metaparameters */
+      'alias audit before loglevel noop require subscribe tag ' +
+    /* normal attributes */
+      'owner ensure group mode name|0 changes context force incl lens load_path onlyif provider returns root show_diff type_check ' +
+      'en_address ip_address realname command environment hour monute month monthday special target weekday '+
+      'creates cwd ogoutput refresh refreshonly tries try_sleep umask backup checksum content ctime force ignore ' +
+      'links mtime purge recurse recurselimit replace selinux_ignore_defaults selrange selrole seltype seluser source ' +
+      'souirce_permissions sourceselect validate_cmd validate_replacement allowdupe attribute_membership auth_membership forcelocal gid '+
+      'ia_load_module members system host_aliases ip allowed_trunk_vlans description device_url duplex encapsulation etherchannel ' +
+      'native_vlan speed principals allow_root auth_class auth_type authenticate_user k_of_n mechanisms rule session_owner shared options ' +
+      'device fstype enable hasrestart directory present absent link atboot blockdevice device dump pass remounts poller_tag use ' +
+      'message withpath adminfile allow_virtual allowcdrom category configfiles flavor install_options instance package_settings platform ' +
+      'responsefile status uninstall_options vendor unless_system_user unless_uid binary control flags hasstatus manifest pattern restart running ' +
+      'start stop allowdupe auths expiry gid groups home iterations key_membership keys managehome membership password password_max_age ' +
+      'password_min_age profile_membership profiles project purge_ssh_keys role_membership roles salt shell uid baseurl cost descr enabled ' +
+      'enablegroups exclude failovermethod gpgcheck gpgkey http_caching include includepkgs keepalive metadata_expire metalink mirrorlist ' +
+      'priority protect proxy proxy_password proxy_username repo_gpgcheck s3_enabled skip_if_unavailable sslcacert sslclientcert sslclientkey ' +
+      'sslverify mounted';
+
+  var PUPPET_KEYWORDS =
+  {
+  keyword:
+    /* language keywords */
+      'and case class default define else elsif false if in import enherits node or true undef unless main settings $string ' + PUPPET_TYPE_REFERENCE,
+  literal:
+      PUPPET_ATTRIBUTES,
+
+  built_in:
+    /* core facts */
+      'architecture augeasversion blockdevices boardmanufacturer boardproductname boardserialnumber cfkey dhcp_servers ' +
+      'domain ec2_ ec2_userdata facterversion filesystems ldom fqdn gid hardwareisa hardwaremodel hostname id|0 interfaces '+
+      'ipaddress ipaddress_ ipaddress6 ipaddress6_ iphostnumber is_virtual kernel kernelmajversion kernelrelease kernelversion ' +
+      'kernelrelease kernelversion lsbdistcodename lsbdistdescription lsbdistid lsbdistrelease lsbmajdistrelease lsbminordistrelease ' +
+      'lsbrelease macaddress macaddress_ macosx_buildversion macosx_productname macosx_productversion macosx_productverson_major ' +
+      'macosx_productversion_minor manufacturer memoryfree memorysize netmask metmask_ network_ operatingsystem operatingsystemmajrelease '+
+      'operatingsystemrelease osfamily partitions path physicalprocessorcount processor processorcount productname ps puppetversion '+
+      'rubysitedir rubyversion selinux selinux_config_mode selinux_config_policy selinux_current_mode selinux_current_mode selinux_enforced '+
+      'selinux_policyversion serialnumber sp_ sshdsakey sshecdsakey sshrsakey swapencrypted swapfree swapsize timezone type uniqueid uptime '+
+      'uptime_days uptime_hours uptime_seconds uuid virtual vlans xendomains zfs_version zonenae zones zpool_version'
+  };
+
+  var COMMENT = hljs.COMMENT('#', '$');
+
+  var STRING = {
+    className: 'string',
+    contains: [hljs.BACKSLASH_ESCAPE],
+    variants: [
+      {begin: /'/, end: /'/},
+      {begin: /"/, end: /"/}
+    ]
+  };
+
+  var PUPPET_DEFAULT_CONTAINS = [
+    STRING,
+    COMMENT,
+    {
+      className: 'keyword',
+      beginKeywords: 'class', end: '$|;',
+      illegal: /=/,
+      contains: [
+        hljs.inherit(hljs.TITLE_MODE, {begin: '(::)?[A-Za-z_]\\w*(::\\w+)*'}),
+        COMMENT,
+        STRING
+      ]
+    },
+    {
+      className: 'keyword',
+      begin: '([a-zA-Z_(::)]+ *\\{)',
+      contains:[STRING, COMMENT],
+      relevance: 0
+    },
+    {
+      className: 'keyword',
+      begin: '(\\}|\\{)',
+      relevance: 0
+    },
+    {
+      className: 'function',
+      begin:'[a-zA-Z_]+\\s*=>'
+    },
+    {
+      className: 'constant',
+      begin: '(::)?(\\b[A-Z][a-z_]*(::)?)+',
+      relevance: 0
+    },
+    {
+      className: 'number',
+      begin: '(\\b0[0-7_]+)|(\\b0x[0-9a-fA-F_]+)|(\\b[1-9][0-9_]*(\\.[0-9_]+)?)|[0_]\\b',
+      relevance: 0
+    }
+  ];
+
+  return {
+    aliases: ['pp'],
+    keywords: PUPPET_KEYWORDS,
+    contains: PUPPET_DEFAULT_CONTAINS
+  }
+};
+},{}],85:[function(require,module,exports){
 module.exports = function(hljs) {
   var PROMPT = {
     className: 'prompt',  begin: /^(>>>|\.\.\.) /
@@ -5689,12 +7581,6 @@ module.exports = function(hljs) {
     begin: /\(/, end: /\)/,
     contains: ['self', PROMPT, NUMBER, STRING]
   };
-  var FUNC_CLASS_PROTO = {
-    end: /:/,
-    illegal: /[${=;\n]/,
-    contains: [hljs.UNDERSCORE_TITLE_MODE, PARAMS]
-  };
-
   return {
     aliases: ['py', 'gyp'],
     keywords: {
@@ -5711,8 +7597,15 @@ module.exports = function(hljs) {
       NUMBER,
       STRING,
       hljs.HASH_COMMENT_MODE,
-      hljs.inherit(FUNC_CLASS_PROTO, {className: 'function', beginKeywords: 'def', relevance: 10}),
-      hljs.inherit(FUNC_CLASS_PROTO, {className: 'class', beginKeywords: 'class'}),
+      {
+        variants: [
+          {className: 'function', beginKeywords: 'def', relevance: 10},
+          {className: 'class', beginKeywords: 'class'}
+        ],
+        end: /:/,
+        illegal: /[${=;\n,]/,
+        contains: [hljs.UNDERSCORE_TITLE_MODE, PARAMS]
+      },
       {
         className: 'decorator',
         begin: /@/, end: /$/
@@ -5723,7 +7616,30 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],67:[function(require,module,exports){
+},{}],86:[function(require,module,exports){
+module.exports = function(hljs) {
+  var Q_KEYWORDS = {
+  keyword:
+    'do while select delete by update from',
+  constant:
+    '0b 1b',
+  built_in:
+    'neg not null string reciprocal floor ceiling signum mod xbar xlog and or each scan over prior mmu lsq inv md5 ltime gtime count first var dev med cov cor all any rand sums prds mins maxs fills deltas ratios avgs differ prev next rank reverse iasc idesc asc desc msum mcount mavg mdev xrank mmin mmax xprev rotate distinct group where flip type key til get value attr cut set upsert raze union inter except cross sv vs sublist enlist read0 read1 hopen hclose hdel hsym hcount peach system ltrim rtrim trim lower upper ssr view tables views cols xcols keys xkey xcol xasc xdesc fkeys meta lj aj aj0 ij pj asof uj ww wj wj1 fby xgroup ungroup ej save load rsave rload show csv parse eval min max avg wavg wsum sin cos tan sum',
+  typename:
+    '`float `double int `timestamp `timespan `datetime `time `boolean `symbol `char `byte `short `long `real `month `date `minute `second `guid'
+  };
+  return {
+  aliases:['k', 'kdb'],
+  keywords: Q_KEYWORDS,
+  lexemes: /\b(`?)[A-Za-z0-9_]+\b/,
+  contains: [
+  hljs.C_LINE_COMMENT_MODE,
+    hljs.QUOTE_STRING_MODE,
+    hljs.C_NUMBER_MODE
+     ]
+  };
+};
+},{}],87:[function(require,module,exports){
 module.exports = function(hljs) {
   var IDENT_RE = '([a-zA-Z]|\\.[a-zA-Z.])[a-zA-Z0-9._]*';
 
@@ -5735,9 +7651,9 @@ module.exports = function(hljs) {
         lexemes: IDENT_RE,
         keywords: {
           keyword:
-            'function if in break next repeat else for return switch while try tryCatch|10 ' +
+            'function if in break next repeat else for return switch while try tryCatch ' +
             'stop warning require library attach detach source setMethod setGeneric ' +
-            'setGroupGeneric setClass ...|10',
+            'setGroupGeneric setClass ...',
           literal:
             'NULL NA TRUE FALSE T F Inf NaN NA_integer_|10 NA_real_|10 NA_character_|10 ' +
             'NA_complex_|10'
@@ -5793,7 +7709,7 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],68:[function(require,module,exports){
+},{}],88:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     keywords:
@@ -5820,7 +7736,67 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],69:[function(require,module,exports){
+},{}],89:[function(require,module,exports){
+module.exports = function(hljs) {
+  var IDENTIFIER = '[a-zA-Z-_][^\n{\r\n]+\\{';
+
+  return {
+    aliases: ['graph', 'instances'],
+    case_insensitive: true,
+    keywords: 'import',
+    contains: [
+      // Facet sections
+      {
+        className: 'facet',
+        begin: '^facet ' + IDENTIFIER,
+        end: '}',
+        keywords: 'facet installer exports children extends',
+        contains: [
+          hljs.HASH_COMMENT_MODE
+        ]
+      },
+
+      // Instance sections
+      {
+        className: 'instance-of',
+        begin: '^instance of ' + IDENTIFIER,
+        end: '}',
+        keywords: 'name count channels instance-data instance-state instance of',
+        contains: [
+          // Instance overridden properties
+          {
+            className: 'keyword',
+            begin: '[a-zA-Z-_]+( |\t)*:'
+          },
+          hljs.HASH_COMMENT_MODE
+        ]
+      },
+
+      // Component sections
+      {
+        className: 'component',
+        begin: '^' + IDENTIFIER,
+        end: '}',
+        lexemes: '\\(?[a-zA-Z]+\\)?',
+        keywords: 'installer exports children extends imports facets alias (optional)',
+        contains: [
+          // Imported component variables
+          {
+            className: 'string',
+            begin: '\\.[a-zA-Z-_]+',
+            end: '\\s|,|;',
+            excludeEnd: true
+          },
+          hljs.HASH_COMMENT_MODE
+        ]
+      },
+
+      // Comments
+      hljs.HASH_COMMENT_MODE
+    ]
+  };
+};
+},{}],90:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     keywords: {
@@ -5857,7 +7833,7 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],70:[function(require,module,exports){
+},{}],91:[function(require,module,exports){
 module.exports = function(hljs) {
   var RUBY_METHOD_RE = '[a-zA-Z_]\\w*[!?=]?|[-+~]\\@|<<|>>|=~|===?|<=>|[<>]=?|\\*\\*|[-/+%^&*~`|]|\\[\\]=?';
   var RUBY_KEYWORDS =
@@ -5872,23 +7848,24 @@ module.exports = function(hljs) {
     className: 'value',
     begin: '#<', end: '>'
   };
-  var COMMENT = {
-    className: 'comment',
-    variants: [
+  var COMMENT_MODES = [
+    hljs.COMMENT(
+      '#',
+      '$',
       {
-        begin: '#', end: '$',
         contains: [YARDOCTAG]
-      },
+      }
+    ),
+    hljs.COMMENT(
+      '^\\=begin',
+      '^\\=end',
       {
-        begin: '^\\=begin', end: '^\\=end',
         contains: [YARDOCTAG],
         relevance: 10
-      },
-      {
-        begin: '^__END__', end: '\\n$'
       }
-    ]
-  };
+    ),
+    hljs.COMMENT('^__END__', '\\n$')
+  ];
   var SUBST = {
     className: 'subst',
     begin: '#\\{', end: '}',
@@ -5900,14 +7877,15 @@ module.exports = function(hljs) {
     variants: [
       {begin: /'/, end: /'/},
       {begin: /"/, end: /"/},
-      {begin: '%[qw]?\\(', end: '\\)'},
-      {begin: '%[qw]?\\[', end: '\\]'},
-      {begin: '%[qw]?{', end: '}'},
-      {begin: '%[qw]?<', end: '>'},
-      {begin: '%[qw]?/', end: '/'},
-      {begin: '%[qw]?%', end: '%'},
-      {begin: '%[qw]?-', end: '-'},
-      {begin: '%[qw]?\\|', end: '\\|'},
+      {begin: /`/, end: /`/},
+      {begin: '%[qQwWx]?\\(', end: '\\)'},
+      {begin: '%[qQwWx]?\\[', end: '\\]'},
+      {begin: '%[qQwWx]?{', end: '}'},
+      {begin: '%[qQwWx]?<', end: '>'},
+      {begin: '%[qQwWx]?/', end: '/'},
+      {begin: '%[qQwWx]?%', end: '%'},
+      {begin: '%[qQwWx]?-', end: '-'},
+      {begin: '%[qQwWx]?\\|', end: '\\|'},
       {
         // \B in the beginning suppresses recognition of ?-sequences where ?
         // is the last character of a preceding identifier, as in: `func?4`
@@ -5924,7 +7902,6 @@ module.exports = function(hljs) {
   var RUBY_DEFAULT_CONTAINS = [
     STRING,
     IRB_OBJECT,
-    COMMENT,
     {
       className: 'class',
       beginKeywords: 'class module', end: '$|;',
@@ -5938,9 +7915,8 @@ module.exports = function(hljs) {
             className: 'parent',
             begin: '(' + hljs.IDENT_RE + '::)?' + hljs.IDENT_RE
           }]
-        },
-        COMMENT
-      ]
+        }
+      ].concat(COMMENT_MODES)
     },
     {
       className: 'function',
@@ -5948,9 +7924,8 @@ module.exports = function(hljs) {
       relevance: 0,
       contains: [
         hljs.inherit(hljs.TITLE_MODE, {begin: RUBY_METHOD_RE}),
-        PARAMS,
-        COMMENT
-      ]
+        PARAMS
+      ].concat(COMMENT_MODES)
     },
     {
       className: 'constant',
@@ -5959,13 +7934,13 @@ module.exports = function(hljs) {
     },
     {
       className: 'symbol',
-      begin: ':',
-      contains: [STRING, {begin: RUBY_METHOD_RE}],
+      begin: hljs.UNDERSCORE_IDENT_RE + '(\\!|\\?)?:',
       relevance: 0
     },
     {
       className: 'symbol',
-      begin: hljs.UNDERSCORE_IDENT_RE + '(\\!|\\?)?:',
+      begin: ':',
+      contains: [STRING, {begin: RUBY_METHOD_RE}],
       relevance: 0
     },
     {
@@ -5981,7 +7956,6 @@ module.exports = function(hljs) {
       begin: '(' + hljs.RE_STARTERS_RE + ')\\s*',
       contains: [
         IRB_OBJECT,
-        COMMENT,
         {
           className: 'regexp',
           contains: [hljs.BACKSLASH_ESCAPE, SUBST],
@@ -5994,55 +7968,42 @@ module.exports = function(hljs) {
             {begin: '%r\\[', end: '\\][a-z]*'}
           ]
         }
-      ],
+      ].concat(COMMENT_MODES),
       relevance: 0
     }
-  ];
+  ].concat(COMMENT_MODES);
+
   SUBST.contains = RUBY_DEFAULT_CONTAINS;
   PARAMS.contains = RUBY_DEFAULT_CONTAINS;
-  
+
+  var SIMPLE_PROMPT = "[>?]>";
+  var DEFAULT_PROMPT = "[\\w#]+\\(\\w+\\):\\d+:\\d+>";
+  var RVM_PROMPT = "(\\w+-)?\\d+\\.\\d+\\.\\d(p\\d+)?[^>]+>";
+
   var IRB_DEFAULT = [
     {
-      relevance: 1,
-      className: 'output',
-      begin: '^\\s*=> ', end: "$",
-      returnBegin: true,
-      contains: [
-        {
-          className: 'status',
-          begin: '^\\s*=>'
-        },
-        {
-          begin: ' ', end: '$',
-          contains: RUBY_DEFAULT_CONTAINS
-        }
-      ]
+      begin: /^\s*=>/,
+      className: 'status',
+      starts: {
+        end: '$', contains: RUBY_DEFAULT_CONTAINS
+      }
     },
     {
-      relevance: 1,
-      className: 'input',
-      begin: '^[^ ][^=>]*>+ ', end: "$",
-      returnBegin: true,
-      contains: [
-        {
-          className: 'prompt',
-          begin: '^[^ ][^=>]*>+'
-        },
-        {
-          begin: ' ', end: '$',
-          contains: RUBY_DEFAULT_CONTAINS
-        }
-      ]
+      className: 'prompt',
+      begin: '^('+SIMPLE_PROMPT+"|"+DEFAULT_PROMPT+'|'+RVM_PROMPT+')',
+      starts: {
+        end: '$', contains: RUBY_DEFAULT_CONTAINS
+      }
     }
   ];
 
   return {
     aliases: ['rb', 'gemspec', 'podspec', 'thor', 'irb'],
     keywords: RUBY_KEYWORDS,
-    contains: IRB_DEFAULT.concat(RUBY_DEFAULT_CONTAINS)
+    contains: COMMENT_MODES.concat(IRB_DEFAULT).concat(RUBY_DEFAULT_CONTAINS)
   };
 };
-},{}],71:[function(require,module,exports){
+},{}],92:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     keywords: {
@@ -6099,23 +8060,34 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],72:[function(require,module,exports){
+},{}],93:[function(require,module,exports){
 module.exports = function(hljs) {
+  var BLOCK_COMMENT = hljs.inherit(hljs.C_BLOCK_COMMENT_MODE);
+  BLOCK_COMMENT.contains.push('self');
   return {
     aliases: ['rs'],
-    keywords:
-      'alignof as be box break const continue crate do else enum extern ' +
-      'false fn for if impl in let loop match mod mut offsetof once priv ' +
-      'proc pub pure ref return self sizeof static struct super trait true ' +
-      'type typeof unsafe unsized use virtual while yield ' +
-      'int i8 i16 i32 i64 ' +
-      'uint u8 u32 u64 ' +
-      'float f32 f64 ' +
-      'str char bool',
+    keywords: {
+      keyword:
+        'alignof as be box break const continue crate do else enum extern ' +
+        'false fn for if impl in let loop match mod mut offsetof once priv ' +
+        'proc pub pure ref return self sizeof static struct super trait true ' +
+        'type typeof unsafe unsized use virtual while yield ' +
+        'int i8 i16 i32 i64 ' +
+        'uint u8 u32 u64 ' +
+        'float f32 f64 ' +
+        'str char bool',
+      built_in:
+        'assert! assert_eq! bitflags! bytes! cfg! col! concat! concat_idents! ' +
+        'debug_assert! debug_assert_eq! env! panic! file! format! format_args! ' +
+        'include_bin! include_str! line! local_data_key! module_path! ' +
+        'option_env! print! println! select! stringify! try! unimplemented! ' +
+        'unreachable! vec! write! writeln!'
+    },
+    lexemes: hljs.IDENT_RE + '!?',
     illegal: '</',
     contains: [
       hljs.C_LINE_COMMENT_MODE,
-      hljs.C_BLOCK_COMMENT_MODE,
+      BLOCK_COMMENT,
       hljs.inherit(hljs.QUOTE_STRING_MODE, {illegal: null}),
       {
         className: 'string',
@@ -6130,7 +8102,7 @@ module.exports = function(hljs) {
       },
       {
         className: 'number',
-        begin: '\\b(0[xb][A-Za-z0-9_]+|[0-9_]+(\\.[0-9_]+)?([uif](8|16|32|64)?)?)',
+        begin: /\b(0[xbo][A-Fa-f0-9_]+|\d[\d_]*(\.[0-9_]+)?([eE][+-]?[0-9_]+)?)([uif](8|16|32|64|size))?/,
         relevance: 0
       },
       {
@@ -6140,7 +8112,7 @@ module.exports = function(hljs) {
       },
       {
         className: 'preprocessor',
-        begin: '#\\[', end: '\\]'
+        begin: '#\\!?\\[', end: '\\]'
       },
       {
         beginKeywords: 'type', end: '(=|<)',
@@ -6161,66 +8133,202 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],73:[function(require,module,exports){
+},{}],94:[function(require,module,exports){
 module.exports = function(hljs) {
+
   var ANNOTATION = {
     className: 'annotation', begin: '@[A-Za-z]+'
   };
+
   var STRING = {
     className: 'string',
     begin: 'u?r?"""', end: '"""',
     relevance: 10
   };
+
   var SYMBOL = {
     className: 'symbol',
     begin: '\'\\w[\\w\\d_]*(?!\')'
   };
+
+  var TYPE = {
+    className: 'type',
+    begin: '\\b[A-Z][A-Za-z0-9_]*',
+    relevance: 0
+  };
+
+  var NAME = {
+    className: 'title',
+    begin: /[^0-9\n\t "'(),.`{}\[\]:;][^\n\t "'(),.`{}\[\]:;]+|[^0-9\n\t "'(),.`{}\[\]:;=]/,
+    relevance: 0
+  };
+
+  var CLASS = {
+    className: 'class',
+    beginKeywords: 'class object trait type',
+    end: /[:={\[(\n;]/,
+    contains: [{className: 'keyword', beginKeywords: 'extends with', relevance: 10}, NAME]
+  };
+
+  var METHOD = {
+    className: 'function',
+    beginKeywords: 'def val',
+    end: /[:={\[(\n;]/,
+    contains: [NAME]
+  };
+
+  var JAVADOC = {
+    className: 'javadoc',
+    begin: '/\\*\\*', end: '\\*/',
+    contains: [{
+      className: 'javadoctag',
+      begin: '@[A-Za-z]+'
+    }],
+    relevance: 10
+  };
+
   return {
-    keywords:
-      'type yield lazy override def with val var false true sealed abstract private trait ' +
-      'object null if for while throw finally protected extends import final return else ' +
-      'break new catch super class case package default try this match continue throws',
+    keywords: {
+      literal: 'true false null',
+      keyword: 'type yield lazy override def with val var sealed abstract private trait object if forSome for while throw finally protected extends import final return else break new catch super class case package default try this match continue throws implicit'
+    },
     contains: [
-      {
-        className: 'javadoc',
-        begin: '/\\*\\*', end: '\\*/',
-        contains: [{
-          className: 'javadoctag',
-          begin: '@[A-Za-z]+'
-        }],
-        relevance: 10
-      },
-      hljs.C_LINE_COMMENT_MODE, hljs.C_BLOCK_COMMENT_MODE,
-      STRING, hljs.QUOTE_STRING_MODE,
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE,
+      STRING,
+      hljs.QUOTE_STRING_MODE,
       SYMBOL,
-      {
-        className: 'class',
-        begin: '((case )?class |object |trait )', // beginKeywords won't work because a single "case" shouldn't start this mode
-        end: '({|$)', excludeEnd: true,
-        illegal: ':',
-        keywords: 'case class trait object',
-        contains: [
-          {
-            beginKeywords: 'extends with',
-            relevance: 10
-          },
-          hljs.UNDERSCORE_TITLE_MODE,
-          {
-            className: 'params',
-            begin: '\\(', end: '\\)',
-            contains: [
-              hljs.QUOTE_STRING_MODE, STRING,
-              ANNOTATION
-            ]
-          }
-        ]
-      },
+      TYPE,
+      METHOD,
+      CLASS,
       hljs.C_NUMBER_MODE,
       ANNOTATION
     ]
   };
 };
-},{}],74:[function(require,module,exports){
+},{}],95:[function(require,module,exports){
+module.exports = function(hljs) {
+  var SCHEME_IDENT_RE = '[^\\(\\)\\[\\]\\{\\}",\'`;#|\\\\\\s]+';
+  var SCHEME_SIMPLE_NUMBER_RE = '(\\-|\\+)?\\d+([./]\\d+)?';
+  var SCHEME_COMPLEX_NUMBER_RE = SCHEME_SIMPLE_NUMBER_RE + '[+\\-]' + SCHEME_SIMPLE_NUMBER_RE + 'i';
+  var BUILTINS = {
+    built_in:
+      'case-lambda call/cc class define-class exit-handler field import ' +
+      'inherit init-field interface let*-values let-values let/ec mixin ' +
+      'opt-lambda override protect provide public rename require ' +
+      'require-for-syntax syntax syntax-case syntax-error unit/sig unless ' +
+      'when with-syntax and begin call-with-current-continuation ' +
+      'call-with-input-file call-with-output-file case cond define ' +
+      'define-syntax delay do dynamic-wind else for-each if lambda let let* ' +
+      'let-syntax letrec letrec-syntax map or syntax-rules \' * + , ,@ - ... / ' +
+      '; < <= = => > >= ` abs acos angle append apply asin assoc assq assv atan ' +
+      'boolean? caar cadr call-with-input-file call-with-output-file ' +
+      'call-with-values car cdddar cddddr cdr ceiling char->integer ' +
+      'char-alphabetic? char-ci<=? char-ci<? char-ci=? char-ci>=? char-ci>? ' +
+      'char-downcase char-lower-case? char-numeric? char-ready? char-upcase ' +
+      'char-upper-case? char-whitespace? char<=? char<? char=? char>=? char>? ' +
+      'char? close-input-port close-output-port complex? cons cos ' +
+      'current-input-port current-output-port denominator display eof-object? ' +
+      'eq? equal? eqv? eval even? exact->inexact exact? exp expt floor ' +
+      'force gcd imag-part inexact->exact inexact? input-port? integer->char ' +
+      'integer? interaction-environment lcm length list list->string ' +
+      'list->vector list-ref list-tail list? load log magnitude make-polar ' +
+      'make-rectangular make-string make-vector max member memq memv min ' +
+      'modulo negative? newline not null-environment null? number->string ' +
+      'number? numerator odd? open-input-file open-output-file output-port? ' +
+      'pair? peek-char port? positive? procedure? quasiquote quote quotient ' +
+      'rational? rationalize read read-char real-part real? remainder reverse ' +
+      'round scheme-report-environment set! set-car! set-cdr! sin sqrt string ' +
+      'string->list string->number string->symbol string-append string-ci<=? ' +
+      'string-ci<? string-ci=? string-ci>=? string-ci>? string-copy ' +
+      'string-fill! string-length string-ref string-set! string<=? string<? ' +
+      'string=? string>=? string>? string? substring symbol->string symbol? ' +
+      'tan transcript-off transcript-on truncate values vector ' +
+      'vector->list vector-fill! vector-length vector-ref vector-set! ' +
+      'with-input-from-file with-output-to-file write write-char zero?'
+  };
+
+  var SHEBANG = {
+    className: 'shebang',
+    begin: '^#!',
+    end: '$'
+  };
+
+  var LITERAL = {
+    className: 'literal',
+    begin: '(#t|#f|#\\\\' + SCHEME_IDENT_RE + '|#\\\\.)'
+  };
+
+  var NUMBER = {
+    className: 'number',
+    variants: [
+      { begin: SCHEME_SIMPLE_NUMBER_RE, relevance: 0 },
+      { begin: SCHEME_COMPLEX_NUMBER_RE, relevance: 0 },
+      { begin: '#b[0-1]+(/[0-1]+)?' },
+      { begin: '#o[0-7]+(/[0-7]+)?' },
+      { begin: '#x[0-9a-f]+(/[0-9a-f]+)?' }
+    ]
+  };
+
+  var STRING = hljs.QUOTE_STRING_MODE;
+
+  var REGULAR_EXPRESSION = {
+    className: 'regexp',
+    begin: '#[pr]x"',
+    end: '[^\\\\]"'
+  };
+
+  var COMMENT_MODES = [
+    hljs.COMMENT(
+      ';',
+      '$',
+      {
+        relevance: 0
+      }
+    ),
+    hljs.COMMENT('#\\|', '\\|#')
+  ];
+
+  var IDENT = {
+    begin: SCHEME_IDENT_RE,
+    relevance: 0
+  };
+
+  var QUOTED_IDENT = {
+    className: 'variable',
+    begin: '\'' + SCHEME_IDENT_RE
+  };
+
+  var BODY = {
+    endsWithParent: true,
+    relevance: 0
+  };
+
+  var LIST = {
+    className: 'list',
+    variants: [
+      { begin: '\\(', end: '\\)' },
+      { begin: '\\[', end: '\\]' }
+    ],
+    contains: [
+      {
+        className: 'keyword',
+        begin: SCHEME_IDENT_RE,
+        lexemes: SCHEME_IDENT_RE,
+        keywords: BUILTINS
+      },
+      BODY
+    ]
+  };
+
+  BODY.contains = [LITERAL, NUMBER, STRING, IDENT, QUOTED_IDENT, LIST].concat(COMMENT_MODES);
+
+  return {
+    illegal: /\S/,
+    contains: [SHEBANG, NUMBER, STRING, QUOTED_IDENT, LIST].concat(COMMENT_MODES)
+  };
+};
+},{}],96:[function(require,module,exports){
 module.exports = function(hljs) {
 
   var COMMON_CONTAINS = [
@@ -6271,14 +8379,11 @@ module.exports = function(hljs) {
         relevance: 0,
         contains: COMMON_CONTAINS
       },
-      {
-        className: 'comment',
-        begin: '//', end: '$'
-      }
+      hljs.COMMENT('//', '$')
     ].concat(COMMON_CONTAINS)
   };
 };
-},{}],75:[function(require,module,exports){
+},{}],97:[function(require,module,exports){
 module.exports = function(hljs) {
   var IDENT_RE = '[a-zA-Z-][a-zA-Z0-9_-]*';
   var VARIABLE = {
@@ -6287,7 +8392,7 @@ module.exports = function(hljs) {
   };
   var FUNCTION = {
     className: 'function',
-    begin: IDENT_RE + '\\(', 
+    begin: IDENT_RE + '\\(',
     returnBegin: true,
     excludeEnd: true,
     end: '\\('
@@ -6352,7 +8457,7 @@ module.exports = function(hljs) {
       VARIABLE,
       {
         className: 'attribute',
-        begin: '\\b(z-index|word-wrap|word-spacing|word-break|width|widows|white-space|visibility|vertical-align|unicode-bidi|transition-timing-function|transition-property|transition-duration|transition-delay|transition|transform-style|transform-origin|transform|top|text-underline-position|text-transform|text-shadow|text-rendering|text-overflow|text-indent|text-decoration-style|text-decoration-line|text-decoration-color|text-decoration|text-align-last|text-align|tab-size|table-layout|right|resize|quotes|position|pointer-events|perspective-origin|perspective|page-break-inside|page-break-before|page-break-after|padding-top|padding-right|padding-left|padding-bottom|padding|overflow-y|overflow-x|overflow-wrap|overflow|outline-width|outline-style|outline-offset|outline-color|outline|orphans|order|opacity|object-position|object-fit|normal|none|nav-up|nav-right|nav-left|nav-index|nav-down|min-width|min-height|max-width|max-height|mask|marks|margin-top|margin-right|margin-left|margin-bottom|margin|list-style-type|list-style-position|list-style-image|list-style|line-height|letter-spacing|left|justify-content|initial|inherit|ime-mode|image-orientation|image-resolution|image-rendering|icon|hyphens|height|font-weight|font-variant-ligatures|font-variant|font-style|font-stretch|font-size-adjust|font-size|font-language-override|font-kerning|font-feature-settings|font-family|font|float|flex-wrap|flex-shrink|flex-grow|flex-flow|flex-direction|flex-basis|flex|filter|empty-cells|display|direction|cursor|counter-reset|counter-increment|content|column-width|column-span|column-rule-width|column-rule-style|column-rule-color|column-rule|column-gap|column-fill|column-count|columns|color|clip-path|clip|clear|caption-side|break-inside|break-before|break-after|box-sizing|box-shadow|box-decoration-break|bottom|border-width|border-top-width|border-top-style|border-top-right-radius|border-top-left-radius|border-top-color|border-top|border-style|border-spacing|border-right-width|border-right-style|border-right-color|border-right|border-radius|border-left-width|border-left-style|border-left-color|border-left|border-image-width|border-image-source|border-image-slice|border-image-repeat|border-image-outset|border-image|border-color|border-collapse|border-bottom-width|border-bottom-style|border-bottom-right-radius|border-bottom-left-radius|border-bottom-color|border-bottom|border|background-size|background-repeat|background-position|background-origin|background-image|background-color|background-clip|background-attachment|background|backface-visibility|auto|animation-timing-function|animation-play-state|animation-name|animation-iteration-count|animation-fill-mode|animation-duration|animation-direction|animation-delay|animation|align-self|align-items|align-content)\\b',
+        begin: '\\b(z-index|word-wrap|word-spacing|word-break|width|widows|white-space|visibility|vertical-align|unicode-bidi|transition-timing-function|transition-property|transition-duration|transition-delay|transition|transform-style|transform-origin|transform|top|text-underline-position|text-transform|text-shadow|text-rendering|text-overflow|text-indent|text-decoration-style|text-decoration-line|text-decoration-color|text-decoration|text-align-last|text-align|tab-size|table-layout|right|resize|quotes|position|pointer-events|perspective-origin|perspective|page-break-inside|page-break-before|page-break-after|padding-top|padding-right|padding-left|padding-bottom|padding|overflow-y|overflow-x|overflow-wrap|overflow|outline-width|outline-style|outline-offset|outline-color|outline|orphans|order|opacity|object-position|object-fit|normal|none|nav-up|nav-right|nav-left|nav-index|nav-down|min-width|min-height|max-width|max-height|mask|marks|margin-top|margin-right|margin-left|margin-bottom|margin|list-style-type|list-style-position|list-style-image|list-style|line-height|letter-spacing|left|justify-content|initial|inherit|ime-mode|image-orientation|image-resolution|image-rendering|icon|hyphens|height|font-weight|font-variant-ligatures|font-variant|font-style|font-stretch|font-size-adjust|font-size|font-language-override|font-kerning|font-feature-settings|font-family|font|float|flex-wrap|flex-shrink|flex-grow|flex-flow|flex-direction|flex-basis|flex|filter|empty-cells|display|direction|cursor|counter-reset|counter-increment|content|column-width|column-span|column-rule-width|column-rule-style|column-rule-color|column-rule|column-gap|column-fill|column-count|columns|color|clip-path|clip|clear|caption-side|break-inside|break-before|break-after|box-sizing|box-shadow|box-decoration-break|bottom|border-width|border-top-width|border-top-style|border-top-right-radius|border-top-left-radius|border-top-color|border-top|border-style|border-spacing|border-right-width|border-right-style|border-right-color|border-right|border-radius|border-left-width|border-left-style|border-left-color|border-left|border-image-width|border-image-source|border-image-slice|border-image-repeat|border-image-outset|border-image|border-color|border-collapse|border-bottom-width|border-bottom-style|border-bottom-right-radius|border-bottom-left-radius|border-bottom-color|border-bottom|border|background-size|background-repeat|background-position|background-origin|background-image|background-color|background-clip|background-attachment|background-blend-mode|background|backface-visibility|auto|animation-timing-function|animation-play-state|animation-name|animation-iteration-count|animation-fill-mode|animation-duration|animation-direction|animation-delay|animation|align-self|align-items|align-content)\\b',
         illegal: '[^\\s]'
       },
       {
@@ -6395,7 +8500,90 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],76:[function(require,module,exports){
+},{}],98:[function(require,module,exports){
+module.exports = function(hljs) {
+  var smali_instr_low_prio = ['add', 'and', 'cmp', 'cmpg', 'cmpl', 'const', 'div', 'double', 'float', 'goto', 'if', 'int', 'long', 'move', 'mul', 'neg', 'new', 'nop', 'not', 'or', 'rem', 'return', 'shl', 'shr', 'sput', 'sub', 'throw', 'ushr', 'xor'];
+  var smali_instr_high_prio = ['aget', 'aput', 'array', 'check', 'execute', 'fill', 'filled', 'goto/16', 'goto/32', 'iget', 'instance', 'invoke', 'iput', 'monitor', 'packed', 'sget', 'sparse'];
+  var smali_keywords = ['transient', 'constructor', 'abstract', 'final', 'synthetic', 'public', 'private', 'protected', 'static', 'bridge', 'system'];
+  return {
+    aliases: ['smali'],
+    contains: [
+      {
+        className: 'string',
+        begin: '"', end: '"',
+        relevance: 0
+      },
+      hljs.COMMENT(
+        '#',
+        '$',
+        {
+          relevance: 0
+        }
+      ),
+      {
+        className: 'keyword',
+        begin: '\\s*\\.end\\s[a-zA-Z0-9]*',
+        relevance: 1
+      },
+      {
+        className: 'keyword',
+        begin: '^[ ]*\\.[a-zA-Z]*',
+        relevance: 0
+      },
+      {
+        className: 'keyword',
+        begin: '\\s:[a-zA-Z_0-9]*',
+        relevance: 0
+      },
+      {
+        className: 'keyword',
+        begin: '\\s('+smali_keywords.join('|')+')',
+        relevance: 1
+      },
+      {
+        className: 'keyword',
+        begin: '\\[',
+        relevance: 0
+      },
+      {
+        className: 'instruction',
+        begin: '\\s('+smali_instr_low_prio.join('|')+')\\s',
+        relevance: 1
+      },
+      {
+        className: 'instruction',
+        begin: '\\s('+smali_instr_low_prio.join('|')+')((\\-|/)[a-zA-Z0-9]+)+\\s',
+        relevance: 10
+      },
+      {
+        className: 'instruction',
+        begin: '\\s('+smali_instr_high_prio.join('|')+')((\\-|/)[a-zA-Z0-9]+)*\\s',
+        relevance: 10
+      },
+      {
+        className: 'class',
+        begin: 'L[^\(;:\n]*;',
+        relevance: 0
+      },
+      {
+        className: 'function',
+        begin: '( |->)[^(\n ;"]*\\(',
+        relevance: 0
+      },
+      {
+        className: 'function',
+        begin: '\\)',
+        relevance: 0
+      },
+      {
+        className: 'variable',
+        begin: '[vp][0-9]+',
+        relevance: 0
+      }
+    ]
+  };
+};
+},{}],99:[function(require,module,exports){
 module.exports = function(hljs) {
   var VAR_IDENT_RE = '[a-z][a-zA-Z0-9_]*';
   var CHAR = {
@@ -6410,10 +8598,7 @@ module.exports = function(hljs) {
     aliases: ['st'],
     keywords: 'self super nil true false thisContext', // only 6
     contains: [
-      {
-        className: 'comment',
-        begin: '"', end: '"'
-      },
+      hljs.COMMENT('"', '"'),
       hljs.APOS_STRING_MODE,
       {
         className: 'class',
@@ -6451,12 +8636,74 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],77:[function(require,module,exports){
+},{}],100:[function(require,module,exports){
 module.exports = function(hljs) {
-  var COMMENT_MODE = {
-    className: 'comment',
-    begin: '--', end: '$'
+  return {
+    aliases: ['ml'],
+    keywords: {
+      keyword:
+        /* according to Definition of Standard ML 97  */
+        'abstype and andalso as case datatype do else end eqtype ' +
+        'exception fn fun functor handle if in include infix infixr ' +
+        'let local nonfix of op open orelse raise rec sharing sig ' +
+        'signature struct structure then type val with withtype where while',
+      built_in:
+        /* built-in types according to basis library */
+        'array bool char exn int list option order real ref string substring vector unit word',
+      literal:
+        'true false NONE SOME LESS EQUAL GREATER nil'
+    },
+    illegal: /\/\/|>>/,
+    lexemes: '[a-z_]\\w*!?',
+    contains: [
+      {
+        className: 'literal',
+        begin: '\\[(\\|\\|)?\\]|\\(\\)'
+      },
+      hljs.COMMENT(
+        '\\(\\*',
+        '\\*\\)',
+        {
+          contains: ['self']
+        }
+      ),
+      { /* type variable */
+        className: 'symbol',
+        begin: '\'[A-Za-z_](?!\')[\\w\']*'
+        /* the grammar is ambiguous on how 'a'b should be interpreted but not the compiler */
+      },
+      { /* polymorphic variant */
+        className: 'tag',
+        begin: '`[A-Z][\\w\']*'
+      },
+      { /* module or constructor */
+        className: 'type',
+        begin: '\\b[A-Z][\\w\']*',
+        relevance: 0
+      },
+      { /* don't color identifiers, but safely catch all identifiers with '*/
+        begin: '[a-z_]\\w*\'[\\w\']*'
+      },
+      hljs.inherit(hljs.APOS_STRING_MODE, {className: 'char', relevance: 0}),
+      hljs.inherit(hljs.QUOTE_STRING_MODE, {illegal: null}),
+      {
+        className: 'number',
+        begin:
+          '\\b(0[xX][a-fA-F0-9_]+[Lln]?|' +
+          '0[oO][0-7_]+[Lln]?|' +
+          '0[bB][01_]+[Lln]?|' +
+          '[0-9][0-9_]*([Lln]|(\\.[0-9_]*)?([eE][-+]?[0-9_]+)?)?)',
+        relevance: 0
+      },
+      {
+        begin: /[-=]>/ // relevance booster
+      }
+    ]
   };
+};
+},{}],101:[function(require,module,exports){
+module.exports = function(hljs) {
+  var COMMENT_MODE = hljs.COMMENT('--', '$');
   return {
     case_insensitive: true,
     illegal: /[<>]/,
@@ -6468,7 +8715,7 @@ module.exports = function(hljs) {
           'delete do handler insert load replace select truncate update set show pragma grant '+
           'merge describe use explain help declare prepare execute deallocate savepoint release '+
           'unlock purge reset change stop analyze cache flush optimize repair kill '+
-          'install uninstall checksum restore check backup',
+          'install uninstall checksum restore check backup revoke',
         end: /;/, endsWithParent: true,
         keywords: {
           keyword:
@@ -6554,7 +8801,540 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],78:[function(require,module,exports){
+},{}],102:[function(require,module,exports){
+module.exports = function(hljs) {
+  return {
+    aliases: ['do', 'ado'],
+    case_insensitive: true,
+    keywords: 'if else in foreach for forv forva forval forvalu forvalue forvalues by bys bysort xi quietly qui capture about ac ac_7 acprplot acprplot_7 adjust ado adopath adoupdate alpha ameans an ano anov anova anova_estat anova_terms anovadef aorder ap app appe appen append arch arch_dr arch_estat arch_p archlm areg areg_p args arima arima_dr arima_estat arima_p as asmprobit asmprobit_estat asmprobit_lf asmprobit_mfx__dlg asmprobit_p ass asse asser assert avplot avplot_7 avplots avplots_7 bcskew0 bgodfrey binreg bip0_lf biplot bipp_lf bipr_lf bipr_p biprobit bitest bitesti bitowt blogit bmemsize boot bootsamp bootstrap bootstrap_8 boxco_l boxco_p boxcox boxcox_6 boxcox_p bprobit br break brier bro brow brows browse brr brrstat bs bs_7 bsampl_w bsample bsample_7 bsqreg bstat bstat_7 bstat_8 bstrap bstrap_7 ca ca_estat ca_p cabiplot camat canon canon_8 canon_8_p canon_estat canon_p cap caprojection capt captu captur capture cat cc cchart cchart_7 cci cd censobs_table centile cf char chdir checkdlgfiles checkestimationsample checkhlpfiles checksum chelp ci cii cl class classutil clear cli clis clist clo clog clog_lf clog_p clogi clogi_sw clogit clogit_lf clogit_p clogitp clogl_sw cloglog clonevar clslistarray cluster cluster_measures cluster_stop cluster_tree cluster_tree_8 clustermat cmdlog cnr cnre cnreg cnreg_p cnreg_sw cnsreg codebook collaps4 collapse colormult_nb colormult_nw compare compress conf confi confir confirm conren cons const constr constra constrai constrain constraint continue contract copy copyright copysource cor corc corr corr2data corr_anti corr_kmo corr_smc corre correl correla correlat correlate corrgram cou coun count cox cox_p cox_sw coxbase coxhaz coxvar cprplot cprplot_7 crc cret cretu cretur creturn cross cs cscript cscript_log csi ct ct_is ctset ctst_5 ctst_st cttost cumsp cumsp_7 cumul cusum cusum_7 cutil d datasig datasign datasigna datasignat datasignatu datasignatur datasignature datetof db dbeta de dec deco decod decode deff des desc descr descri describ describe destring dfbeta dfgls dfuller di di_g dir dirstats dis discard disp disp_res disp_s displ displa display distinct do doe doed doedi doedit dotplot dotplot_7 dprobit drawnorm drop ds ds_util dstdize duplicates durbina dwstat dydx e ed edi edit egen eivreg emdef en enc enco encod encode eq erase ereg ereg_lf ereg_p ereg_sw ereghet ereghet_glf ereghet_glf_sh ereghet_gp ereghet_ilf ereghet_ilf_sh ereghet_ip eret eretu eretur ereturn err erro error est est_cfexist est_cfname est_clickable est_expand est_hold est_table est_unhold est_unholdok estat estat_default estat_summ estat_vce_only esti estimates etodow etof etomdy ex exi exit expand expandcl fac fact facto factor factor_estat factor_p factor_pca_rotated factor_rotate factormat fcast fcast_compute fcast_graph fdades fdadesc fdadescr fdadescri fdadescrib fdadescribe fdasav fdasave fdause fh_st file open file read file close file filefilter fillin find_hlp_file findfile findit findit_7 fit fl fli flis flist for5_0 form forma format fpredict frac_154 frac_adj frac_chk frac_cox frac_ddp frac_dis frac_dv frac_in frac_mun frac_pp frac_pq frac_pv frac_wgt frac_xo fracgen fracplot fracplot_7 fracpoly fracpred fron_ex fron_hn fron_p fron_tn fron_tn2 frontier ftodate ftoe ftomdy ftowdate g gamhet_glf gamhet_gp gamhet_ilf gamhet_ip gamma gamma_d2 gamma_p gamma_sw gammahet gdi_hexagon gdi_spokes ge gen gene gener genera generat generate genrank genstd genvmean gettoken gl gladder gladder_7 glim_l01 glim_l02 glim_l03 glim_l04 glim_l05 glim_l06 glim_l07 glim_l08 glim_l09 glim_l10 glim_l11 glim_l12 glim_lf glim_mu glim_nw1 glim_nw2 glim_nw3 glim_p glim_v1 glim_v2 glim_v3 glim_v4 glim_v5 glim_v6 glim_v7 glm glm_6 glm_p glm_sw glmpred glo glob globa global glogit glogit_8 glogit_p gmeans gnbre_lf gnbreg gnbreg_5 gnbreg_p gomp_lf gompe_sw gomper_p gompertz gompertzhet gomphet_glf gomphet_glf_sh gomphet_gp gomphet_ilf gomphet_ilf_sh gomphet_ip gphdot gphpen gphprint gprefs gprobi_p gprobit gprobit_8 gr gr7 gr_copy gr_current gr_db gr_describe gr_dir gr_draw gr_draw_replay gr_drop gr_edit gr_editviewopts gr_example gr_example2 gr_export gr_print gr_qscheme gr_query gr_read gr_rename gr_replay gr_save gr_set gr_setscheme gr_table gr_undo gr_use graph graph7 grebar greigen greigen_7 greigen_8 grmeanby grmeanby_7 gs_fileinfo gs_filetype gs_graphinfo gs_stat gsort gwood h hadimvo hareg hausman haver he heck_d2 heckma_p heckman heckp_lf heckpr_p heckprob hel help hereg hetpr_lf hetpr_p hetprob hettest hexdump hilite hist hist_7 histogram hlogit hlu hmeans hotel hotelling hprobit hreg hsearch icd9 icd9_ff icd9p iis impute imtest inbase include inf infi infil infile infix inp inpu input ins insheet insp inspe inspec inspect integ inten intreg intreg_7 intreg_p intrg2_ll intrg_ll intrg_ll2 ipolate iqreg ir irf irf_create irfm iri is_svy is_svysum isid istdize ivprob_1_lf ivprob_lf ivprobit ivprobit_p ivreg ivreg_footnote ivtob_1_lf ivtob_lf ivtobit ivtobit_p jackknife jacknife jknife jknife_6 jknife_8 jkstat joinby kalarma1 kap kap_3 kapmeier kappa kapwgt kdensity kdensity_7 keep ksm ksmirnov ktau kwallis l la lab labe label labelbook ladder levels levelsof leverage lfit lfit_p li lincom line linktest lis list lloghet_glf lloghet_glf_sh lloghet_gp lloghet_ilf lloghet_ilf_sh lloghet_ip llogi_sw llogis_p llogist llogistic llogistichet lnorm_lf lnorm_sw lnorma_p lnormal lnormalhet lnormhet_glf lnormhet_glf_sh lnormhet_gp lnormhet_ilf lnormhet_ilf_sh lnormhet_ip lnskew0 loadingplot loc loca local log logi logis_lf logistic logistic_p logit logit_estat logit_p loglogs logrank loneway lookfor lookup lowess lowess_7 lpredict lrecomp lroc lroc_7 lrtest ls lsens lsens_7 lsens_x lstat ltable ltable_7 ltriang lv lvr2plot lvr2plot_7 m ma mac macr macro makecns man manova manova_estat manova_p manovatest mantel mark markin markout marksample mat mat_capp mat_order mat_put_rr mat_rapp mata mata_clear mata_describe mata_drop mata_matdescribe mata_matsave mata_matuse mata_memory mata_mlib mata_mosave mata_rename mata_which matalabel matcproc matlist matname matr matri matrix matrix_input__dlg matstrik mcc mcci md0_ md1_ md1debug_ md2_ md2debug_ mds mds_estat mds_p mdsconfig mdslong mdsmat mdsshepard mdytoe mdytof me_derd mean means median memory memsize meqparse mer merg merge mfp mfx mhelp mhodds minbound mixed_ll mixed_ll_reparm mkassert mkdir mkmat mkspline ml ml_5 ml_adjs ml_bhhhs ml_c_d ml_check ml_clear ml_cnt ml_debug ml_defd ml_e0 ml_e0_bfgs ml_e0_cycle ml_e0_dfp ml_e0i ml_e1 ml_e1_bfgs ml_e1_bhhh ml_e1_cycle ml_e1_dfp ml_e2 ml_e2_cycle ml_ebfg0 ml_ebfr0 ml_ebfr1 ml_ebh0q ml_ebhh0 ml_ebhr0 ml_ebr0i ml_ecr0i ml_edfp0 ml_edfr0 ml_edfr1 ml_edr0i ml_eds ml_eer0i ml_egr0i ml_elf ml_elf_bfgs ml_elf_bhhh ml_elf_cycle ml_elf_dfp ml_elfi ml_elfs ml_enr0i ml_enrr0 ml_erdu0 ml_erdu0_bfgs ml_erdu0_bhhh ml_erdu0_bhhhq ml_erdu0_cycle ml_erdu0_dfp ml_erdu0_nrbfgs ml_exde ml_footnote ml_geqnr ml_grad0 ml_graph ml_hbhhh ml_hd0 ml_hold ml_init ml_inv ml_log ml_max ml_mlout ml_mlout_8 ml_model ml_nb0 ml_opt ml_p ml_plot ml_query ml_rdgrd ml_repor ml_s_e ml_score ml_searc ml_technique ml_unhold mleval mlf_ mlmatbysum mlmatsum mlog mlogi mlogit mlogit_footnote mlogit_p mlopts mlsum mlvecsum mnl0_ mor more mov move mprobit mprobit_lf mprobit_p mrdu0_ mrdu1_ mvdecode mvencode mvreg mvreg_estat n nbreg nbreg_al nbreg_lf nbreg_p nbreg_sw nestreg net newey newey_7 newey_p news nl nl_7 nl_9 nl_9_p nl_p nl_p_7 nlcom nlcom_p nlexp2 nlexp2_7 nlexp2a nlexp2a_7 nlexp3 nlexp3_7 nlgom3 nlgom3_7 nlgom4 nlgom4_7 nlinit nllog3 nllog3_7 nllog4 nllog4_7 nlog_rd nlogit nlogit_p nlogitgen nlogittree nlpred no nobreak noi nois noisi noisil noisily note notes notes_dlg nptrend numlabel numlist odbc old_ver olo olog ologi ologi_sw ologit ologit_p ologitp on one onew onewa oneway op_colnm op_comp op_diff op_inv op_str opr opro oprob oprob_sw oprobi oprobi_p oprobit oprobitp opts_exclusive order orthog orthpoly ou out outf outfi outfil outfile outs outsh outshe outshee outsheet ovtest pac pac_7 palette parse parse_dissim pause pca pca_8 pca_display pca_estat pca_p pca_rotate pcamat pchart pchart_7 pchi pchi_7 pcorr pctile pentium pergram pergram_7 permute permute_8 personal peto_st pkcollapse pkcross pkequiv pkexamine pkexamine_7 pkshape pksumm pksumm_7 pl plo plot plugin pnorm pnorm_7 poisgof poiss_lf poiss_sw poisso_p poisson poisson_estat post postclose postfile postutil pperron pr prais prais_e prais_e2 prais_p predict predictnl preserve print pro prob probi probit probit_estat probit_p proc_time procoverlay procrustes procrustes_estat procrustes_p profiler prog progr progra program prop proportion prtest prtesti pwcorr pwd q\\s qby qbys qchi qchi_7 qladder qladder_7 qnorm qnorm_7 qqplot qqplot_7 qreg qreg_c qreg_p qreg_sw qu quadchk quantile quantile_7 que quer query range ranksum ratio rchart rchart_7 rcof recast reclink recode reg reg3 reg3_p regdw regr regre regre_p2 regres regres_p regress regress_estat regriv_p remap ren rena renam rename renpfix repeat replace report reshape restore ret retu retur return rm rmdir robvar roccomp roccomp_7 roccomp_8 rocf_lf rocfit rocfit_8 rocgold rocplot rocplot_7 roctab roctab_7 rolling rologit rologit_p rot rota rotat rotate rotatemat rreg rreg_p ru run runtest rvfplot rvfplot_7 rvpplot rvpplot_7 sa safesum sample sampsi sav save savedresults saveold sc sca scal scala scalar scatter scm_mine sco scob_lf scob_p scobi_sw scobit scor score scoreplot scoreplot_help scree screeplot screeplot_help sdtest sdtesti se search separate seperate serrbar serrbar_7 serset set set_defaults sfrancia sh she shel shell shewhart shewhart_7 signestimationsample signrank signtest simul simul_7 simulate simulate_8 sktest sleep slogit slogit_d2 slogit_p smooth snapspan so sor sort spearman spikeplot spikeplot_7 spikeplt spline_x split sqreg sqreg_p sret sretu sretur sreturn ssc st st_ct st_hc st_hcd st_hcd_sh st_is st_issys st_note st_promo st_set st_show st_smpl st_subid stack statsby statsby_8 stbase stci stci_7 stcox stcox_estat stcox_fr stcox_fr_ll stcox_p stcox_sw stcoxkm stcoxkm_7 stcstat stcurv stcurve stcurve_7 stdes stem stepwise stereg stfill stgen stir stjoin stmc stmh stphplot stphplot_7 stphtest stphtest_7 stptime strate strate_7 streg streg_sw streset sts sts_7 stset stsplit stsum sttocc sttoct stvary stweib su suest suest_8 sum summ summa summar summari summariz summarize sunflower sureg survcurv survsum svar svar_p svmat svy svy_disp svy_dreg svy_est svy_est_7 svy_estat svy_get svy_gnbreg_p svy_head svy_header svy_heckman_p svy_heckprob_p svy_intreg_p svy_ivreg_p svy_logistic_p svy_logit_p svy_mlogit_p svy_nbreg_p svy_ologit_p svy_oprobit_p svy_poisson_p svy_probit_p svy_regress_p svy_sub svy_sub_7 svy_x svy_x_7 svy_x_p svydes svydes_8 svygen svygnbreg svyheckman svyheckprob svyintreg svyintreg_7 svyintrg svyivreg svylc svylog_p svylogit svymarkout svymarkout_8 svymean svymlog svymlogit svynbreg svyolog svyologit svyoprob svyoprobit svyopts svypois svypois_7 svypoisson svyprobit svyprobt svyprop svyprop_7 svyratio svyreg svyreg_p svyregress svyset svyset_7 svyset_8 svytab svytab_7 svytest svytotal sw sw_8 swcnreg swcox swereg swilk swlogis swlogit swologit swoprbt swpois swprobit swqreg swtobit swweib symmetry symmi symplot symplot_7 syntax sysdescribe sysdir sysuse szroeter ta tab tab1 tab2 tab_or tabd tabdi tabdis tabdisp tabi table tabodds tabodds_7 tabstat tabu tabul tabula tabulat tabulate te tempfile tempname tempvar tes test testnl testparm teststd tetrachoric time_it timer tis tob tobi tobit tobit_p tobit_sw token tokeni tokeniz tokenize tostring total translate translator transmap treat_ll treatr_p treatreg trim trnb_cons trnb_mean trpoiss_d2 trunc_ll truncr_p truncreg tsappend tset tsfill tsline tsline_ex tsreport tsrevar tsrline tsset tssmooth tsunab ttest ttesti tut_chk tut_wait tutorial tw tware_st two twoway twoway__fpfit_serset twoway__function_gen twoway__histogram_gen twoway__ipoint_serset twoway__ipoints_serset twoway__kdensity_gen twoway__lfit_serset twoway__normgen_gen twoway__pci_serset twoway__qfit_serset twoway__scatteri_serset twoway__sunflower_gen twoway_ksm_serset ty typ type typeof u unab unabbrev unabcmd update us use uselabel var var_mkcompanion var_p varbasic varfcast vargranger varirf varirf_add varirf_cgraph varirf_create varirf_ctable varirf_describe varirf_dir varirf_drop varirf_erase varirf_graph varirf_ograph varirf_rename varirf_set varirf_table varlist varlmar varnorm varsoc varstable varstable_w varstable_w2 varwle vce vec vec_fevd vec_mkphi vec_p vec_p_w vecirf_create veclmar veclmar_w vecnorm vecnorm_w vecrank vecstable verinst vers versi versio version view viewsource vif vwls wdatetof webdescribe webseek webuse weib1_lf weib2_lf weib_lf weib_lf0 weibhet_glf weibhet_glf_sh weibhet_glfa weibhet_glfa_sh weibhet_gp weibhet_ilf weibhet_ilf_sh weibhet_ilfa weibhet_ilfa_sh weibhet_ip weibu_sw weibul_p weibull weibull_c weibull_s weibullhet wh whelp whi which whil while wilc_st wilcoxon win wind windo window winexec wntestb wntestb_7 wntestq xchart xchart_7 xcorr xcorr_7 xi xi_6 xmlsav xmlsave xmluse xpose xsh xshe xshel xshell xt_iis xt_tis xtab_p xtabond xtbin_p xtclog xtcloglog xtcloglog_8 xtcloglog_d2 xtcloglog_pa_p xtcloglog_re_p xtcnt_p xtcorr xtdata xtdes xtfront_p xtfrontier xtgee xtgee_elink xtgee_estat xtgee_makeivar xtgee_p xtgee_plink xtgls xtgls_p xthaus xthausman xtht_p xthtaylor xtile xtint_p xtintreg xtintreg_8 xtintreg_d2 xtintreg_p xtivp_1 xtivp_2 xtivreg xtline xtline_ex xtlogit xtlogit_8 xtlogit_d2 xtlogit_fe_p xtlogit_pa_p xtlogit_re_p xtmixed xtmixed_estat xtmixed_p xtnb_fe xtnb_lf xtnbreg xtnbreg_pa_p xtnbreg_refe_p xtpcse xtpcse_p xtpois xtpoisson xtpoisson_d2 xtpoisson_pa_p xtpoisson_refe_p xtpred xtprobit xtprobit_8 xtprobit_d2 xtprobit_re_p xtps_fe xtps_lf xtps_ren xtps_ren_8 xtrar_p xtrc xtrc_p xtrchh xtrefe_p xtreg xtreg_be xtreg_fe xtreg_ml xtreg_pa_p xtreg_re xtregar xtrere_p xtset xtsf_ll xtsf_llti xtsum xttab xttest0 xttobit xttobit_8 xttobit_p xttrans yx yxview__barlike_draw yxview_area_draw yxview_bar_draw yxview_dot_draw yxview_dropline_draw yxview_function_draw yxview_iarrow_draw yxview_ilabels_draw yxview_normal_draw yxview_pcarrow_draw yxview_pcbarrow_draw yxview_pccapsym_draw yxview_pcscatter_draw yxview_pcspike_draw yxview_rarea_draw yxview_rbar_draw yxview_rbarm_draw yxview_rcap_draw yxview_rcapsym_draw yxview_rconnected_draw yxview_rline_draw yxview_rscatter_draw yxview_rspike_draw yxview_spike_draw yxview_sunflower_draw zap_s zinb zinb_llf zinb_plf zip zip_llf zip_p zip_plf zt_ct_5 zt_hc_5 zt_hcd_5 zt_is_5 zt_iss_5 zt_sho_5 zt_smp_5 ztbase_5 ztcox_5 ztdes_5 ztereg_5 ztfill_5 ztgen_5 ztir_5 ztjoin_5 ztnb ztnb_p ztp ztp_p zts_5 ztset_5 ztspli_5 ztsum_5 zttoct_5 ztvary_5 ztweib_5',
+        contains: [
+      {
+        className: 'label',
+        variants: [
+          {begin: "\\$\\{?[a-zA-Z0-9_]+\\}?"},
+          {begin: "`[a-zA-Z0-9_]+'"}
+
+        ]
+      },
+      {
+        className: 'string',
+        variants: [
+          {begin: '`"[^\r\n]*?"\''},
+          {begin: '"[^\r\n"]*"'}
+        ]
+      },
+
+      {
+        className: 'literal',
+        variants: [
+          {
+            begin: '\\b(abs|acos|asin|atan|atan2|atanh|ceil|cloglog|comb|cos|digamma|exp|floor|invcloglog|invlogit|ln|lnfact|lnfactorial|lngamma|log|log10|max|min|mod|reldif|round|sign|sin|sqrt|sum|tan|tanh|trigamma|trunc|betaden|Binomial|binorm|binormal|chi2|chi2tail|dgammapda|dgammapdada|dgammapdadx|dgammapdx|dgammapdxdx|F|Fden|Ftail|gammaden|gammap|ibeta|invbinomial|invchi2|invchi2tail|invF|invFtail|invgammap|invibeta|invnchi2|invnFtail|invnibeta|invnorm|invnormal|invttail|nbetaden|nchi2|nFden|nFtail|nibeta|norm|normal|normalden|normd|npnchi2|tden|ttail|uniform|abbrev|char|index|indexnot|length|lower|ltrim|match|plural|proper|real|regexm|regexr|regexs|reverse|rtrim|string|strlen|strlower|strltrim|strmatch|strofreal|strpos|strproper|strreverse|strrtrim|strtrim|strupper|subinstr|subinword|substr|trim|upper|word|wordcount|_caller|autocode|byteorder|chop|clip|cond|e|epsdouble|epsfloat|group|inlist|inrange|irecode|matrix|maxbyte|maxdouble|maxfloat|maxint|maxlong|mi|minbyte|mindouble|minfloat|minint|minlong|missing|r|recode|replay|return|s|scalar|d|date|day|dow|doy|halfyear|mdy|month|quarter|week|year|d|daily|dofd|dofh|dofm|dofq|dofw|dofy|h|halfyearly|hofd|m|mofd|monthly|q|qofd|quarterly|tin|twithin|w|weekly|wofd|y|yearly|yh|ym|yofd|yq|yw|cholesky|colnumb|colsof|corr|det|diag|diag0cnt|el|get|hadamard|I|inv|invsym|issym|issymmetric|J|matmissing|matuniform|mreldif|nullmat|rownumb|rowsof|sweep|syminv|trace|vec|vecdiag)(?=\\(|$)'
+          }
+        ]
+      },
+
+      hljs.COMMENT('^[ \t]*\\*.*$', false),
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE
+    ]
+  };
+};
+},{}],103:[function(require,module,exports){
+module.exports = function(hljs) {
+  var STEP21_IDENT_RE = '[A-Z_][A-Z0-9_.]*';
+  var STEP21_CLOSE_RE = 'END-ISO-10303-21;';
+  var STEP21_KEYWORDS = {
+    literal: '',
+    built_in: '',
+    keyword:
+    'HEADER ENDSEC DATA'
+  };
+  var STEP21_START = {
+    className: 'preprocessor',
+    begin: 'ISO-10303-21;',
+    relevance: 10
+  };
+  var STEP21_CODE = [
+    hljs.C_LINE_COMMENT_MODE,
+    hljs.C_BLOCK_COMMENT_MODE,
+    hljs.COMMENT('/\\*\\*!', '\\*/'),
+    hljs.C_NUMBER_MODE,
+    hljs.inherit(hljs.APOS_STRING_MODE, {illegal: null}),
+    hljs.inherit(hljs.QUOTE_STRING_MODE, {illegal: null}),
+    {
+      className: 'string',
+      begin: "'", end: "'"
+    },
+    {
+      className: 'label',
+      variants: [
+        {
+          begin: '#', end: '\\d+',
+          illegal: '\\W'
+        }
+      ]
+    }
+  ];
+
+  return {
+    aliases: ['p21', 'step', 'stp'],
+    case_insensitive: true, // STEP 21 is case insensitive in theory, in practice all non-comments are capitalized.
+    lexemes: STEP21_IDENT_RE,
+    keywords: STEP21_KEYWORDS,
+    contains: [
+      {
+        className: 'preprocessor',
+        begin: STEP21_CLOSE_RE,
+        relevance: 10
+      },
+      STEP21_START
+    ].concat(STEP21_CODE)
+  };
+};
+},{}],104:[function(require,module,exports){
+module.exports = function(hljs) {
+
+  var VARIABLE = {
+    className: 'variable',
+    begin: '\\$' + hljs.IDENT_RE
+  };
+
+  var HEX_COLOR = {
+    className: 'hexcolor',
+    begin: '#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})',
+    relevance: 10
+  };
+
+  var AT_KEYWORDS = [
+    'charset',
+    'css',
+    'debug',
+    'extend',
+    'font-face',
+    'for',
+    'import',
+    'include',
+    'media',
+    'mixin',
+    'page',
+    'warn',
+    'while'
+  ];
+
+  var PSEUDO_SELECTORS = [
+    'after',
+    'before',
+    'first-letter',
+    'first-line',
+    'active',
+    'first-child',
+    'focus',
+    'hover',
+    'lang',
+    'link',
+    'visited'
+  ];
+
+  var TAGS = [
+    'a',
+    'abbr',
+    'address',
+    'article',
+    'aside',
+    'audio',
+    'b',
+    'blockquote',
+    'body',
+    'button',
+    'canvas',
+    'caption',
+    'cite',
+    'code',
+    'dd',
+    'del',
+    'details',
+    'dfn',
+    'div',
+    'dl',
+    'dt',
+    'em',
+    'fieldset',
+    'figcaption',
+    'figure',
+    'footer',
+    'form',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'header',
+    'hgroup',
+    'html',
+    'i',
+    'iframe',
+    'img',
+    'input',
+    'ins',
+    'kbd',
+    'label',
+    'legend',
+    'li',
+    'mark',
+    'menu',
+    'nav',
+    'object',
+    'ol',
+    'p',
+    'q',
+    'quote',
+    'samp',
+    'section',
+    'span',
+    'strong',
+    'summary',
+    'sup',
+    'table',
+    'tbody',
+    'td',
+    'textarea',
+    'tfoot',
+    'th',
+    'thead',
+    'time',
+    'tr',
+    'ul',
+    'var',
+    'video'
+  ];
+
+  var TAG_END = '[\\.\\s\\n\\[\\:,]';
+
+  var ATTRIBUTES = [
+    'align-content',
+    'align-items',
+    'align-self',
+    'animation',
+    'animation-delay',
+    'animation-direction',
+    'animation-duration',
+    'animation-fill-mode',
+    'animation-iteration-count',
+    'animation-name',
+    'animation-play-state',
+    'animation-timing-function',
+    'auto',
+    'backface-visibility',
+    'background',
+    'background-attachment',
+    'background-clip',
+    'background-color',
+    'background-image',
+    'background-origin',
+    'background-position',
+    'background-repeat',
+    'background-size',
+    'border',
+    'border-bottom',
+    'border-bottom-color',
+    'border-bottom-left-radius',
+    'border-bottom-right-radius',
+    'border-bottom-style',
+    'border-bottom-width',
+    'border-collapse',
+    'border-color',
+    'border-image',
+    'border-image-outset',
+    'border-image-repeat',
+    'border-image-slice',
+    'border-image-source',
+    'border-image-width',
+    'border-left',
+    'border-left-color',
+    'border-left-style',
+    'border-left-width',
+    'border-radius',
+    'border-right',
+    'border-right-color',
+    'border-right-style',
+    'border-right-width',
+    'border-spacing',
+    'border-style',
+    'border-top',
+    'border-top-color',
+    'border-top-left-radius',
+    'border-top-right-radius',
+    'border-top-style',
+    'border-top-width',
+    'border-width',
+    'bottom',
+    'box-decoration-break',
+    'box-shadow',
+    'box-sizing',
+    'break-after',
+    'break-before',
+    'break-inside',
+    'caption-side',
+    'clear',
+    'clip',
+    'clip-path',
+    'color',
+    'column-count',
+    'column-fill',
+    'column-gap',
+    'column-rule',
+    'column-rule-color',
+    'column-rule-style',
+    'column-rule-width',
+    'column-span',
+    'column-width',
+    'columns',
+    'content',
+    'counter-increment',
+    'counter-reset',
+    'cursor',
+    'direction',
+    'display',
+    'empty-cells',
+    'filter',
+    'flex',
+    'flex-basis',
+    'flex-direction',
+    'flex-flow',
+    'flex-grow',
+    'flex-shrink',
+    'flex-wrap',
+    'float',
+    'font',
+    'font-family',
+    'font-feature-settings',
+    'font-kerning',
+    'font-language-override',
+    'font-size',
+    'font-size-adjust',
+    'font-stretch',
+    'font-style',
+    'font-variant',
+    'font-variant-ligatures',
+    'font-weight',
+    'height',
+    'hyphens',
+    'icon',
+    'image-orientation',
+    'image-rendering',
+    'image-resolution',
+    'ime-mode',
+    'inherit',
+    'initial',
+    'justify-content',
+    'left',
+    'letter-spacing',
+    'line-height',
+    'list-style',
+    'list-style-image',
+    'list-style-position',
+    'list-style-type',
+    'margin',
+    'margin-bottom',
+    'margin-left',
+    'margin-right',
+    'margin-top',
+    'marks',
+    'mask',
+    'max-height',
+    'max-width',
+    'min-height',
+    'min-width',
+    'nav-down',
+    'nav-index',
+    'nav-left',
+    'nav-right',
+    'nav-up',
+    'none',
+    'normal',
+    'object-fit',
+    'object-position',
+    'opacity',
+    'order',
+    'orphans',
+    'outline',
+    'outline-color',
+    'outline-offset',
+    'outline-style',
+    'outline-width',
+    'overflow',
+    'overflow-wrap',
+    'overflow-x',
+    'overflow-y',
+    'padding',
+    'padding-bottom',
+    'padding-left',
+    'padding-right',
+    'padding-top',
+    'page-break-after',
+    'page-break-before',
+    'page-break-inside',
+    'perspective',
+    'perspective-origin',
+    'pointer-events',
+    'position',
+    'quotes',
+    'resize',
+    'right',
+    'tab-size',
+    'table-layout',
+    'text-align',
+    'text-align-last',
+    'text-decoration',
+    'text-decoration-color',
+    'text-decoration-line',
+    'text-decoration-style',
+    'text-indent',
+    'text-overflow',
+    'text-rendering',
+    'text-shadow',
+    'text-transform',
+    'text-underline-position',
+    'top',
+    'transform',
+    'transform-origin',
+    'transform-style',
+    'transition',
+    'transition-delay',
+    'transition-duration',
+    'transition-property',
+    'transition-timing-function',
+    'unicode-bidi',
+    'vertical-align',
+    'visibility',
+    'white-space',
+    'widows',
+    'width',
+    'word-break',
+    'word-spacing',
+    'word-wrap',
+    'z-index'
+  ];
+
+  // illegals
+  var ILLEGAL = [
+    '\\{',
+    '\\}',
+    '\\?',
+    '(\\bReturn\\b)', // monkey
+    '(\\bEnd\\b)', // monkey
+    '(\\bend\\b)', // vbscript
+    ';', // sql
+    '#\\s', // markdown
+    '\\*\\s', // markdown
+    '===\\s', // markdown
+    '\\|',
+    '%', // prolog
+  ];
+
+  return {
+    aliases: ['styl'],
+    case_insensitive: false,
+    illegal: '(' + ILLEGAL.join('|') + ')',
+    keywords: 'if else for in',
+    contains: [
+
+      // strings
+      hljs.QUOTE_STRING_MODE,
+      hljs.APOS_STRING_MODE,
+
+      // comments
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE,
+
+      // hex colors
+      HEX_COLOR,
+
+      // class tag
+      {
+        begin: '\\.[a-zA-Z][a-zA-Z0-9_-]*' + TAG_END,
+        returnBegin: true,
+        contains: [
+          {className: 'class', begin: '\\.[a-zA-Z][a-zA-Z0-9_-]*'}
+        ]
+      },
+
+      // id tag
+      {
+        begin: '\\#[a-zA-Z][a-zA-Z0-9_-]*' + TAG_END,
+        returnBegin: true,
+        contains: [
+          {className: 'id', begin: '\\#[a-zA-Z][a-zA-Z0-9_-]*'}
+        ]
+      },
+
+      // tags
+      {
+        begin: '\\b(' + TAGS.join('|') + ')' + TAG_END,
+        returnBegin: true,
+        contains: [
+          {className: 'tag', begin: '\\b[a-zA-Z][a-zA-Z0-9_-]*'}
+        ]
+      },
+
+      // psuedo selectors
+      {
+        className: 'pseudo',
+        begin: '&?:?:\\b(' + PSEUDO_SELECTORS.join('|') + ')' + TAG_END
+      },
+
+      // @ keywords
+      {
+        className: 'at_rule',
+        begin: '\@(' + AT_KEYWORDS.join('|') + ')\\b'
+      },
+
+      // variables
+      VARIABLE,
+
+      // dimension
+      hljs.CSS_NUMBER_MODE,
+
+      // number
+      hljs.NUMBER_MODE,
+
+      // functions
+      //  - only from beginning of line + whitespace
+      {
+        className: 'function',
+        begin: '\\b[a-zA-Z][a-zA-Z0-9_\-]*\\(.*\\)',
+        illegal: '[\\n]',
+        returnBegin: true,
+        contains: [
+          {className: 'title', begin: '\\b[a-zA-Z][a-zA-Z0-9_\-]*'},
+          {
+            className: 'params',
+            begin: /\(/,
+            end: /\)/,
+            contains: [
+              HEX_COLOR,
+              VARIABLE,
+              hljs.APOS_STRING_MODE,
+              hljs.CSS_NUMBER_MODE,
+              hljs.NUMBER_MODE,
+              hljs.QUOTE_STRING_MODE
+            ]
+          }
+        ]
+      },
+
+      // attributes
+      //  - only from beginning of line + whitespace
+      //  - must have whitespace after it
+      {
+        className: 'attribute',
+        begin: '\\b(' + ATTRIBUTES.reverse().join('|') + ')\\b'
+      }
+    ]
+  };
+};
+},{}],105:[function(require,module,exports){
 module.exports = function(hljs) {
   var SWIFT_KEYWORDS = {
       keyword: 'class deinit enum extension func import init let protocol static ' +
@@ -6585,11 +9365,13 @@ module.exports = function(hljs) {
     begin: '\\b[A-Z][\\w\']*',
     relevance: 0
   };
-  var BLOCK_COMMENT = {
-    className: 'comment',
-    begin: '/\\*', end: '\\*/',
-    contains: [hljs.PHRASAL_WORDS_MODE, 'self']
-  };
+  var BLOCK_COMMENT = hljs.COMMENT(
+    '/\\*',
+    '\\*/',
+    {
+      contains: ['self']
+    }
+  );
   var SUBST = {
     className: 'subst',
     begin: /\\\(/, end: '\\)',
@@ -6616,7 +9398,7 @@ module.exports = function(hljs) {
       NUMBERS,
       {
         className: 'func',
-        beginKeywords: 'func', excludeEnd: true,
+        beginKeywords: 'func', end: '{', excludeEnd: true,
         contains: [
           hljs.inherit(hljs.TITLE_MODE, {
             begin: /[A-Za-z$_][0-9A-Za-z$_]*/,
@@ -6624,15 +9406,19 @@ module.exports = function(hljs) {
           }),
           {
             className: 'generics',
-            begin: /\</, end: /\>/,
-            illegal: /\>/
+            begin: /</, end: />/,
+            illegal: />/
           },
           {
             className: 'params',
-            begin: /\(/, end: /\)/,
+            begin: /\(/, end: /\)/, endsParent: true,
+            keywords: SWIFT_KEYWORDS,
             contains: [
-              hljs.C_LINE_COMMENT_MODE,
-              hljs.C_BLOCK_COMMENT_MODE
+              'self',
+              NUMBERS,
+              QUOTE_STRING_MODE,
+              hljs.C_BLOCK_COMMENT_MODE,
+              {begin: ':'} // relevance booster
             ],
             illegal: /["']/
           }
@@ -6641,8 +9427,8 @@ module.exports = function(hljs) {
       },
       {
         className: 'class',
-        keywords: 'struct protocol class extension enum',
-        begin: '(struct|protocol|class(?! (func|var))|extension|enum)',
+        beginKeywords: 'struct protocol class extension enum',
+        keywords: SWIFT_KEYWORDS,
         end: '\\{',
         excludeEnd: true,
         contains: [
@@ -6655,11 +9441,73 @@ module.exports = function(hljs) {
                   '@NSCopying|@NSManaged|@objc|@optional|@required|@auto_closure|' +
                   '@noreturn|@IBAction|@IBDesignable|@IBInspectable|@IBOutlet|' +
                   '@infix|@prefix|@postfix)'
-      },
+      }
     ]
   };
 };
-},{}],79:[function(require,module,exports){
+},{}],106:[function(require,module,exports){
+module.exports = function(hljs) {
+  return {
+    aliases: ['tk'],
+    keywords: 'after append apply array auto_execok auto_import auto_load auto_mkindex ' +
+      'auto_mkindex_old auto_qualify auto_reset bgerror binary break catch cd chan clock ' +
+      'close concat continue dde dict encoding eof error eval exec exit expr fblocked ' +
+      'fconfigure fcopy file fileevent filename flush for foreach format gets glob global ' +
+      'history http if incr info interp join lappend|10 lassign|10 lindex|10 linsert|10 list ' +
+      'llength|10 load lrange|10 lrepeat|10 lreplace|10 lreverse|10 lsearch|10 lset|10 lsort|10 '+
+      'mathfunc mathop memory msgcat namespace open package parray pid pkg::create pkg_mkIndex '+
+      'platform platform::shell proc puts pwd read refchan regexp registry regsub|10 rename '+
+      'return safe scan seek set socket source split string subst switch tcl_endOfWord '+
+      'tcl_findLibrary tcl_startOfNextWord tcl_startOfPreviousWord tcl_wordBreakAfter '+
+      'tcl_wordBreakBefore tcltest tclvars tell time tm trace unknown unload unset update '+
+      'uplevel upvar variable vwait while',
+    contains: [
+      hljs.COMMENT(';[ \\t]*#', '$'),
+      hljs.COMMENT('^[ \\t]*#', '$'),
+      {
+        beginKeywords: 'proc',
+        end: '[\\{]',
+        excludeEnd: true,
+        contains: [
+          {
+            className: 'symbol',
+            begin: '[ \\t\\n\\r]+(::)?[a-zA-Z_]((::)?[a-zA-Z0-9_])*',
+            end: '[ \\t\\n\\r]',
+            endsWithParent: true,
+            excludeEnd: true
+          }
+        ]
+      },
+      {
+        className: 'variable',
+        excludeEnd: true,
+        variants: [
+          {
+            begin: '\\$(\\{)?(::)?[a-zA-Z_]((::)?[a-zA-Z0-9_])*\\(([a-zA-Z0-9_])*\\)',
+            end: '[^a-zA-Z0-9_\\}\\$]'
+          },
+          {
+            begin: '\\$(\\{)?(::)?[a-zA-Z_]((::)?[a-zA-Z0-9_])*',
+            end: '(\\))?[^a-zA-Z0-9_\\}\\$]'
+          }
+        ]
+      },
+      {
+        className: 'string',
+        contains: [hljs.BACKSLASH_ESCAPE],
+        variants: [
+          hljs.inherit(hljs.APOS_STRING_MODE, {illegal: null}),
+          hljs.inherit(hljs.QUOTE_STRING_MODE, {illegal: null})
+        ]
+      },
+      {
+        className: 'number',
+        variants: [hljs.BINARY_NUMBER_MODE, hljs.C_NUMBER_MODE]
+      }
+    ]
+  }
+};
+},{}],107:[function(require,module,exports){
 module.exports = function(hljs) {
   var COMMAND1 = {
     className: 'command',
@@ -6704,15 +9552,17 @@ module.exports = function(hljs) {
         contains: [COMMAND1, COMMAND2, SPECIAL],
         relevance: 0
       },
-      {
-        className: 'comment',
-        begin: '%', end: '$',
-        relevance: 0
-      }
+      hljs.COMMENT(
+        '%',
+        '$',
+        {
+          relevance: 0
+        }
+      )
     ]
   };
 };
-},{}],80:[function(require,module,exports){
+},{}],108:[function(require,module,exports){
 module.exports = function(hljs) {
   var BUILT_IN_TYPES = 'bool byte i16 i32 i64 double string binary';
   return {
@@ -6740,7 +9590,6 @@ module.exports = function(hljs) {
         ]
       },
       {
-        className: 'stl_container',
         begin: '\\b(set|list|map)\\s*<', end: '>',
         keywords: BUILT_IN_TYPES,
         contains: ['self']
@@ -6748,7 +9597,64 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],81:[function(require,module,exports){
+},{}],109:[function(require,module,exports){
+module.exports = function(hljs) {
+  var PARAMS = {
+    className: 'params',
+    begin: '\\(', end: '\\)'
+  };
+
+  var FUNCTION_NAMES = 'attribute block constant cycle date dump include ' +
+                  'max min parent random range source template_from_string';
+
+  var FUNCTIONS = {
+    className: 'function',
+    beginKeywords: FUNCTION_NAMES,
+    relevance: 0,
+    contains: [
+      PARAMS
+    ]
+  };
+
+  var FILTER = {
+    className: 'filter',
+    begin: /\|[A-Za-z_]+:?/,
+    keywords:
+      'abs batch capitalize convert_encoding date date_modify default ' +
+      'escape first format join json_encode keys last length lower ' +
+      'merge nl2br number_format raw replace reverse round slice sort split ' +
+      'striptags title trim upper url_encode',
+    contains: [
+      FUNCTIONS
+    ]
+  };
+
+  var TAGS = 'autoescape block do embed extends filter flush for ' +
+    'if import include macro sandbox set spaceless use verbatim';
+
+  TAGS = TAGS + ' ' + TAGS.split(' ').map(function(t){return 'end' + t}).join(' ');
+
+  return {
+    aliases: ['craftcms'],
+    case_insensitive: true,
+    subLanguage: 'xml', subLanguageMode: 'continuous',
+    contains: [
+      hljs.COMMENT(/\{#/, /#}/),
+      {
+        className: 'template_tag',
+        begin: /\{%/, end: /%}/,
+        keywords: TAGS,
+        contains: [FILTER, FUNCTIONS]
+      },
+      {
+        className: 'variable',
+        begin: /\{\{/, end: /}}/,
+        contains: [FILTER, FUNCTIONS]
+      }
+    ]
+  };
+};
+},{}],110:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     aliases: ['ts'],
@@ -6757,7 +9663,7 @@ module.exports = function(hljs) {
         'in if for while finally var new function|0 do return void else break catch ' +
         'instanceof with throw case default try this switch continue typeof delete ' +
         'let yield const class public private get set super interface extends' +
-        'static constructor implements enum export import declare',
+        'static constructor implements enum export import declare type protected',
       literal:
         'true false null undefined NaN Infinity',
       built_in:
@@ -6767,7 +9673,7 @@ module.exports = function(hljs) {
         'TypeError URIError Number Math Date String RegExp Array Float32Array ' +
         'Float64Array Int16Array Int32Array Int8Array Uint16Array Uint32Array ' +
         'Uint8Array Uint8ClampedArray ArrayBuffer DataView JSON Intl arguments require ' +
-        'module console window document any number boolean string void',
+        'module console window document any number boolean string void'
     },
     contains: [
       {
@@ -6820,11 +9726,11 @@ module.exports = function(hljs) {
       },
       {
         className: 'module',
-        beginKeywords: 'module', end: /\{/, excludeEnd: true,
+        beginKeywords: 'module', end: /\{/, excludeEnd: true
       },
       {
         className: 'interface',
-        beginKeywords: 'interface', end: /\{/, excludeEnd: true,
+        beginKeywords: 'interface', end: /\{/, excludeEnd: true
       },
       {
         begin: /\$[(.]/ // relevance booster for a pattern common to JS libs: `$(something)` and `$.something`
@@ -6835,7 +9741,7 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],82:[function(require,module,exports){
+},{}],111:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     keywords: {
@@ -6890,7 +9796,7 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],83:[function(require,module,exports){
+},{}],112:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     aliases: ['vb'],
@@ -6918,20 +9824,25 @@ module.exports = function(hljs) {
     illegal: '//|{|}|endif|gosub|variant|wend', /* reserved deprecated keywords */
     contains: [
       hljs.inherit(hljs.QUOTE_STRING_MODE, {contains: [{begin: '""'}]}),
-      {
-        className: 'comment',
-        begin: '\'', end: '$', returnBegin: true,
-        contains: [
-          {
-            className: 'xmlDocTag',
-            begin: '\'\'\'|<!--|-->'
-          },
-          {
-            className: 'xmlDocTag',
-            begin: '</?', end: '>'
-          }
+      hljs.COMMENT(
+        '\'',
+        '$',
+        {
+          returnBegin: true,
+          contains: [
+            {
+              className: 'xmlDocTag',
+              begin: '\'\'\'|<!--|-->',
+              contains: [hljs.PHRASAL_WORDS_MODE]
+            },
+            {
+              className: 'xmlDocTag',
+              begin: '</?', end: '>',
+              contains: [hljs.PHRASAL_WORDS_MODE]
+            }
           ]
-      },
+        }
+      ),
       hljs.C_NUMBER_MODE,
       {
         className: 'preprocessor',
@@ -6941,7 +9852,19 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],84:[function(require,module,exports){
+},{}],113:[function(require,module,exports){
+module.exports = function(hljs) {
+  return {
+    subLanguage: 'xml', subLanguageMode: 'continuous',
+    contains: [
+      {
+        begin: '<%', end: '%>',
+        subLanguage: 'vbscript'
+      }
+    ]
+  };
+};
+},{}],114:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     aliases: ['vbs'],
@@ -6969,17 +9892,81 @@ module.exports = function(hljs) {
     illegal: '//',
     contains: [
       hljs.inherit(hljs.QUOTE_STRING_MODE, {contains: [{begin: '""'}]}),
-      {
-        className: 'comment',
-        begin: /'/, end: /$/,
-        relevance: 0
-      },
+      hljs.COMMENT(
+        /'/,
+        /$/,
+        {
+          relevance: 0
+        }
+      ),
       hljs.C_NUMBER_MODE
     ]
   };
 };
-},{}],85:[function(require,module,exports){
+},{}],115:[function(require,module,exports){
 module.exports = function(hljs) {
+  return {
+    aliases: ['v'],
+    case_insensitive: true,
+    keywords: {
+      keyword:
+        'always and assign begin buf bufif0 bufif1 case casex casez cmos deassign ' +
+        'default defparam disable edge else end endcase endfunction endmodule ' +
+        'endprimitive endspecify endtable endtask event for force forever fork ' +
+        'function if ifnone initial inout input join macromodule module nand ' +
+        'negedge nmos nor not notif0 notif1 or output parameter pmos posedge ' +
+        'primitive pulldown pullup rcmos release repeat rnmos rpmos rtran ' +
+        'rtranif0 rtranif1 specify specparam table task timescale tran ' +
+        'tranif0 tranif1 wait while xnor xor',
+      typename:
+        'highz0 highz1 integer large medium pull0 pull1 real realtime reg ' +
+        'scalared signed small strong0 strong1 supply0 supply0 supply1 supply1 ' +
+        'time tri tri0 tri1 triand trior trireg vectored wand weak0 weak1 wire wor'
+    },
+    contains: [
+      hljs.C_BLOCK_COMMENT_MODE,
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.QUOTE_STRING_MODE,
+      {
+        className: 'number',
+        begin: '\\b(\\d+\'(b|h|o|d|B|H|O|D))?[0-9xzXZ]+',
+        contains: [hljs.BACKSLASH_ESCAPE],
+        relevance: 0
+      },
+      /* ports in instances */
+      {
+        className: 'typename',
+        begin: '\\.\\w+',
+        relevance: 0
+      },
+      /* parameters to instances */
+      {
+        className: 'value',
+        begin: '#\\((?!parameter).+\\)'
+      },
+      /* operators */
+      {
+        className: 'keyword',
+        begin: '\\+|-|\\*|/|%|<|>|=|#|`|\\!|&|\\||@|:|\\^|~|\\{|\\}',
+        relevance: 0
+      }
+    ]
+  }; // return
+};
+},{}],116:[function(require,module,exports){
+module.exports = function(hljs) {
+  // Regular expression for VHDL numeric literals.
+
+  // Decimal literal:
+  var INTEGER_RE = '\\d(_|\\d)*';
+  var EXPONENT_RE = '[eE][-+]?' + INTEGER_RE;
+  var DECIMAL_LITERAL_RE = INTEGER_RE + '(\\.' + INTEGER_RE + ')?' + '(' + EXPONENT_RE + ')?';
+  // Based literal:
+  var BASED_INTEGER_RE = '\\w+';
+  var BASED_LITERAL_RE = INTEGER_RE + '#' + BASED_INTEGER_RE + '(\\.' + BASED_INTEGER_RE + ')?' + '#' + '(' + EXPONENT_RE + ')?';
+
+  var NUMBER_RE = '\\b(' + BASED_LITERAL_RE + '|' + DECIMAL_LITERAL_RE + ')';
+
   return {
     case_insensitive: true,
     keywords: {
@@ -7002,12 +9989,13 @@ module.exports = function(hljs) {
     illegal: '{',
     contains: [
       hljs.C_BLOCK_COMMENT_MODE,        // VHDL-2008 block commenting.
-      {
-        className: 'comment',
-        begin: '--', end: '$'
-      },
+      hljs.COMMENT('--', '$'),
       hljs.QUOTE_STRING_MODE,
-      hljs.C_NUMBER_MODE,
+      {
+        className: 'number',
+        begin: NUMBER_RE,
+        relevance: 0
+      },
       {
         className: 'literal',
         begin: '\'(U|X|0|1|Z|W|L|H|-)\'',
@@ -7019,9 +10007,9 @@ module.exports = function(hljs) {
         contains: [hljs.BACKSLASH_ESCAPE]
       }
     ]
-  }; // return
+  };
 };
-},{}],86:[function(require,module,exports){
+},{}],117:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     lexemes: /[!#@\w]+/,
@@ -7084,7 +10072,7 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],87:[function(require,module,exports){
+},{}],118:[function(require,module,exports){
 module.exports = function(hljs) {
   return {
     case_insensitive: true,
@@ -7154,12 +10142,13 @@ module.exports = function(hljs) {
         'float128l float128h __FLOAT_DAZ__ __FLOAT_ROUND__ __FLOAT__'
     },
     contains: [
-      {
-        className: 'comment',
-        begin: ';',
-        end: '$',
-        relevance: 0
-      },
+      hljs.COMMENT(
+        ';',
+        '$',
+        {
+          relevance: 0
+        }
+      ),
       // Float number and x87 BCD
       {
         className: 'number',
@@ -7231,7 +10220,87 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],88:[function(require,module,exports){
+},{}],119:[function(require,module,exports){
+module.exports = function(hljs) {
+  var BUILTIN_MODULES = 'ObjectLoader Animate MovieCredits Slides Filters Shading Materials LensFlare Mapping VLCAudioVideo StereoDecoder PointCloud NetworkAccess RemoteControl RegExp ChromaKey Snowfall NodeJS Speech Charts';
+
+  var XL_KEYWORDS = {
+    keyword: 'if then else do while until for loop import with is as where when by data constant',
+    literal: 'true false nil',
+    type: 'integer real text name boolean symbol infix prefix postfix block tree',
+    built_in: 'in mod rem and or xor not abs sign floor ceil sqrt sin cos tan asin acos atan exp expm1 log log2 log10 log1p pi at',
+    module: BUILTIN_MODULES,
+    id: 'text_length text_range text_find text_replace contains page slide basic_slide title_slide title subtitle fade_in fade_out fade_at clear_color color line_color line_width texture_wrap texture_transform texture scale_?x scale_?y scale_?z? translate_?x translate_?y translate_?z? rotate_?x rotate_?y rotate_?z? rectangle circle ellipse sphere path line_to move_to quad_to curve_to theme background contents locally time mouse_?x mouse_?y mouse_buttons'
+  };
+
+  var XL_CONSTANT = {
+    className: 'constant',
+    begin: '[A-Z][A-Z_0-9]+',
+    relevance: 0
+  };
+  var XL_VARIABLE = {
+    className: 'variable',
+    begin: '([A-Z][a-z_0-9]+)+',
+    relevance: 0
+  };
+  var XL_ID = {
+    className: 'id',
+    begin: '[a-z][a-z_0-9]+',
+    relevance: 0
+  };
+
+  var DOUBLE_QUOTE_TEXT = {
+    className: 'string',
+    begin: '"', end: '"', illegal: '\\n'
+  };
+  var SINGLE_QUOTE_TEXT = {
+    className: 'string',
+    begin: '\'', end: '\'', illegal: '\\n'
+  };
+  var LONG_TEXT = {
+    className: 'string',
+    begin: '<<', end: '>>'
+  };
+  var BASED_NUMBER = {
+    className: 'number',
+    begin: '[0-9]+#[0-9A-Z_]+(\\.[0-9-A-Z_]+)?#?([Ee][+-]?[0-9]+)?',
+    relevance: 10
+  };
+  var IMPORT = {
+    className: 'import',
+    beginKeywords: 'import', end: '$',
+    keywords: {
+      keyword: 'import',
+      module: BUILTIN_MODULES
+    },
+    relevance: 0,
+    contains: [DOUBLE_QUOTE_TEXT]
+  };
+  var FUNCTION_DEFINITION = {
+    className: 'function',
+    begin: '[a-z].*->'
+  };
+  return {
+    aliases: ['tao'],
+    lexemes: /[a-zA-Z][a-zA-Z0-9_?]*/,
+    keywords: XL_KEYWORDS,
+    contains: [
+    hljs.C_LINE_COMMENT_MODE,
+    hljs.C_BLOCK_COMMENT_MODE,
+    DOUBLE_QUOTE_TEXT,
+    SINGLE_QUOTE_TEXT,
+    LONG_TEXT,
+    FUNCTION_DEFINITION,
+    IMPORT,
+    XL_CONSTANT,
+    XL_VARIABLE,
+    XL_ID,
+    BASED_NUMBER,
+    hljs.NUMBER_MODE
+    ]
+  };
+};
+},{}],120:[function(require,module,exports){
 module.exports = function(hljs) {
   var XML_IDENT_RE = '[A-Za-z0-9\\._:-]+';
   var PHP = {
@@ -7255,6 +10324,7 @@ module.exports = function(hljs) {
         contains: [
           {
             className: 'value',
+            contains: [PHP],
             variants: [
               {begin: /"/, end: /"/},
               {begin: /'/, end: /'/},
@@ -7275,11 +10345,13 @@ module.exports = function(hljs) {
         relevance: 10,
         contains: [{begin: '\\[', end: '\\]'}]
       },
-      {
-        className: 'comment',
-        begin: '<!--', end: '-->',
-        relevance: 10
-      },
+      hljs.COMMENT(
+        '<!--',
+        '-->',
+        {
+          relevance: 10
+        }
+      ),
       {
         className: 'cdata',
         begin: '<\\!\\[CDATA\\[', end: '\\]\\]>',
@@ -7309,12 +10381,8 @@ module.exports = function(hljs) {
         contains: [TAG_INTERNALS],
         starts: {
           end: '</script>', returnEnd: true,
-          subLanguage: 'javascript'
+          subLanguage: ''
         }
-      },
-      {
-        begin: '<%', end: '%>',
-        subLanguage: 'vbscript'
       },
       PHP,
       {
@@ -7327,7 +10395,7 @@ module.exports = function(hljs) {
         begin: '</?', end: '/?>',
         contains: [
           {
-            className: 'title', begin: '[^ /><]+', relevance: 0
+            className: 'title', begin: /[^ \/><\n\t]+/, relevance: 0
           },
           TAG_INTERNALS
         ]
@@ -7335,7 +10403,7 @@ module.exports = function(hljs) {
     ]
   };
 };
-},{}],89:[function(require,module,exports){
+},{}],121:[function(require,module,exports){
 (function (global){
 /**
  * marked - a markdown parser
@@ -7359,7 +10427,7 @@ var block = {
   lheading: /^([^\n]+)\n *(=|-){2,} *(?:\n+|$)/,
   blockquote: /^( *>[^\n]+(\n(?!def)[^\n]+)*\n*)+/,
   list: /^( *)(bull) [\s\S]+?(?:hr|def|\n{2,}(?! )(?!\1bull )\n*|\s*$)/,
-  html: /^ *(?:comment|closed|closing) *(?:\n{2,}|\s*$)/,
+  html: /^ *(?:comment *(?:\n|\s*$)|closed *(?:\n{2,}|\s*$)|closing *(?:\n{2,}|\s*$))/,
   def: /^ *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$)/,
   table: noop,
   paragraph: /^((?:[^\n]+\n?(?!hr|heading|lheading|blockquote|tag|def))+)\n*/,
@@ -8207,7 +11275,7 @@ Renderer.prototype.link = function(href, title, text) {
     } catch (e) {
       return '';
     }
-    if (prot.indexOf('javascript:') === 0) {
+    if (prot.indexOf('javascript:') === 0 || prot.indexOf('vbscript:') === 0) {
       return '';
     }
   }
@@ -8493,8 +11561,13 @@ function marked(src, opt, callback) {
 
     pending = tokens.length;
 
-    var done = function() {
-      var out, err;
+    var done = function(err) {
+      if (err) {
+        opt.highlight = highlight;
+        return callback(err);
+      }
+
+      var out;
 
       try {
         out = Parser.parse(tokens, opt);
@@ -8523,6 +11596,7 @@ function marked(src, opt, callback) {
           return --pending || done();
         }
         return highlight(token.text, token.lang, function(err, code) {
+          if (err) return done(err);
           if (code == null || code === token.text) {
             return --pending || done();
           }
@@ -8592,7 +11666,7 @@ marked.inlineLexer = InlineLexer.output;
 
 marked.parse = marked;
 
-if (typeof exports === 'object') {
+if (typeof module !== 'undefined' && typeof exports === 'object') {
   module.exports = marked;
 } else if (typeof define === 'function' && define.amd) {
   define(function() { return marked; });
@@ -8605,7 +11679,7 @@ if (typeof exports === 'object') {
 }());
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],90:[function(require,module,exports){
+},{}],122:[function(require,module,exports){
 var marked = require('marked'),
     hljs   = require('highlight.js');
 
@@ -8717,7 +11791,9 @@ var marked = require('marked'),
 
     fromMarkdown: function fromMarkdown(markdown) {
       marked.setOptions({
-        renderer: new CustomRenderer()
+        renderer: new CustomRenderer(),
+        gfm: true,
+        breaks: true
       });
 
       var html = marked(markdown);
@@ -9013,4 +12089,4 @@ var marked = require('marked'),
 
 })();
 
-},{"highlight.js":2,"marked":89}]},{},[90]);
+},{"highlight.js":2,"marked":121}]},{},[122]);
