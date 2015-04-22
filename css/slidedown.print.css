@@ -1,0 +1,48 @@
+@media print {
+  @page {
+    size: auto;
+    margin: .5in .5in .5in .5in;
+    mso-header-margin: .5in;
+    mso-footer-margin: .5in;
+    mso-paper-source: 0;
+  }
+  html,
+  body {
+    margin: 0 auto;
+    background: white;
+    display: block;
+    margin: 0;
+    font-size: 120% !important;
+    box-shadow: 0;
+  }
+  h1 {
+    border-bottom: none !important;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    text-align: left !important;
+  }
+  .noprint {
+    display: hidden
+  }
+  .slide footer {
+    display: none !important;
+  }
+  .slideNo {
+    margin: 2em 0;
+    text-align: center;
+    color: #CCCCCC;
+    font-size: small;
+    border-bottom: 1px solid #CCCCCC!important;
+    line-height: 0;
+    padding: 0;
+  }
+  .slideNo span {
+    background: #fff !important;
+    padding: 0 24px;
+  }
+}

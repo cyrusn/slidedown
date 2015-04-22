@@ -1,0 +1,330 @@
+@import url("http://fonts.googleapis.com/css?family=Inconsolata|Open+Sans:300,400,700");
+#slides {
+  height: 100%;
+}
+
+@media screen {
+  html,
+  body {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+}
+
+
+body {
+  font-family: sans-serif;
+}
+
+p {
+  text-align: left;
+}
+
+code {
+  font-family: monospace;
+  text-align: left;
+}
+
+pre {
+  text-align: left;
+}
+
+ol, ul {
+  margin: 0 1%;
+  /*position:relative;*/
+  display: inline-block;
+  text-align: left;
+}
+
+
+li ul,
+li ol {
+  display: block;
+  text-align: left;
+}
+
+p {
+  padding: 1% 5%
+}
+
+a:link {
+  text-decoration: none;
+}
+
+a:visited {
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+a:active {
+  text-decoration: underline;
+}
+
+del,
+em,
+table {
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 20px;
+  background-color: transparent;
+}
+
+tbody > tr > th,
+tfoot > tr > th,
+thead > tr > td,
+tbody > tr > td,
+tfoot > tr > td {
+  margin: 0;
+  padding-right: 1em;
+  padding-left: 1em;
+  line-height: 1.42857143;
+  vertical-align: top;
+}
+
+thead > tr > th,
+thead > tr > td {
+  margin: 0;
+  font-size: 120%;
+  padding-right: 1em;
+  padding-left: 1em;
+  line-height: 1.42857143;
+  vertical-align: top;
+  border-bottom-width: 4px;
+  border-style: none none double none;
+}
+
+img {
+  max-width: 70%;
+  height: auto;
+  padding: 4px;
+  line-height: 1.42857143;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+li {
+  margin: 0.5em 0;
+  padding-right: 1em;
+  padding-left: 1em;
+}
+
+a {
+  background-color: transparent;
+  color: #337ab7;
+}
+
+
+blockquote {
+  border: 1px solid #999;
+}
+
+blockquote {
+  font-size: 90%;
+  border-left: 5px solid #eee;
+}
+
+@media screen {
+
+  .slide {
+    top: 0;
+    bottom: 0;
+    min-height: 100%;
+    width: 100%;
+    position: absolute;
+    /*display: none;*/
+    visibility: hidden;
+    overflow-x: hidden;
+  }
+  .slide .content {
+    min-height: calc(100% - 48px);
+    text-align: center;
+    width: fit-content;
+    width: intrinsic;
+    max-width: 100%;
+    margin: auto;
+    padding-top: 48px;
+    color: #555555;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  .slide footer {
+    /*semi hidden the footer, user have to scroll down for instructions*/
+    /*bottom: 12px;*/
+    position: absolute;
+    width: 100%;
+    text-align: center;
+  }
+  .slide .navigation-instructions {
+    display: inline-block;
+    font-size: small;
+    text-align: left;
+  }
+  .slide .navigation-instructions ul,
+  .slide .navigation-instructions p {
+    margin: 0 !important;
+  }
+  .slide.previous,
+  .slide.current,
+  .slide.next {
+    display: block;
+    visibility: visible;
+    /* trigger transition animation */
+    transition: left 0.5s ease;
+    -moz-transition: left 0.5s ease;
+    -webkit-transition: left 0.5s ease;
+  }
+  .slide.previous {
+    left: -100%;
+  }
+  .slide.current {
+    left: 0;
+  }
+  .slide.next {
+    left: 100%;
+  }
+}
+
+@media screen and (max-width: 767px) {
+  body {
+    font-size: 80% !important;
+  }
+  .slide footer {
+    display: none !important;
+  }
+}
+
+@media screen and (max-width: 991px) {
+  body {
+    font-size: 125%;
+  }
+}
+
+@media screen and (min-width: 992px) {
+  body {
+    font-size: 200%;
+  }
+  .slide .content {
+    max-width: 960px;
+  }
+}
+
+@media screen and (min-width: 1200px) {
+  .slide .content {
+    max-width: 90%;
+  }
+}
+
+.slide h1 {
+  border-bottom: 1px solid #cfcfc2;
+}
+
+.slide h1,
+.slide h2,
+.slide h3 {
+  margin-left: 5px;
+  margin-right: 5px;
+  text-align: center;
+}
+
+.slide pre {
+  position: relative;
+  padding: 12px;
+  white-space: pre-wrap;
+}
+
+.slide blockquote {
+  border-left: 6px solid #888;
+  padding-left: 12px;
+  border: 1px solid #999;
+  page-break-inside: avoid;
+}
+/* Center images on their own line (<p><img /></p>) */
+
+.slide p > img:first-child:last-child {
+  display: block;
+  margin: auto;
+}
+/* Yeah, I like Bootstrap's code formatting, OK? */
+
+.slide li code,
+.slide h1 code,
+.slide h2 code,
+.slide h3 code,
+.slide h4 code,
+.slide h5 code,
+.slide h6 code,
+.slide p code {
+  padding: 2px 4px;
+  font-size: 90%;
+  border-radius: 4px;
+}
+
+@media screen {
+  [data-layout="title-only"] h1 {
+    position: absolute;
+    top: 40%;
+    left: 0;
+    right: 0;
+    margin-top: -5%;
+    font-size: 250%;
+    font-weight: bold;
+    width: 80%;
+    margin:auto;
+    border-bottom: none;
+  }
+  [data-layout="title-subtitle"] h1 {
+    position: absolute;
+    bottom: 51%;
+    left: 0;
+    right: 0;
+    margin-bottom: 0;
+    font-size: 200%;
+    font-weight: bold;
+    border-bottom: none;
+  }
+  [data-layout="title-subtitle"] h2 {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    margin-top: 1%;
+    font-size: 120%;
+    font-weight: normal;
+    border-bottom: none;
+  }
+  [data-layout="side-by-side"] .left,
+  [data-layout="side-by-side"] .right {
+    position: absolute;
+    text-align: center;
+  }
+  [data-layout="side-by-side"] .left {
+    left: 5%;
+    right: 50%;
+    padding-right: 2.5%;
+  }
+  [data-layout="side-by-side"] .right {
+    right: 5%;
+    left: 50%;
+    padding-left: 2.5%
+  }
+}
+
+@media screen {
+  .slideNo{
+    display: none;
+  }
+}
+
+@media screen {
+  .hidden{
+    display: none
+  }
+}

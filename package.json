@@ -1,12 +1,17 @@
 {
   "name": "slidedown",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "description": "Markdown slide decks",
   "main": "slidedown.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/dtao/slidedown.git"
   },
+  "keyword": [
+    "presentation",
+    "markdown",
+    "mathjax"
+  ],
   "author": "Dan Tao <daniel.tao@gmail.com>",
   "license": "MIT",
   "bugs": {
@@ -15,6 +20,13 @@
   "homepage": "https://github.com/dtao/slidedown",
   "dependencies": {
     "highlight.js": "^8.1.0",
-    "marked": "^0.3.2"
+    "marked": "^0.3.3",
+    "mermaid": "^0.4.0"
+  },
+  "devDependencies": {
+    "gulp": "^3.8.11",
+    "gulp-browserify": "^0.5.1",
+    "gulp-rename": "^1.2.2",
+    "gulp-uglify": "^1.2.0"
   }
 }

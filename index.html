@@ -2,41 +2,46 @@
 <html>
 
 <head>
-    <title>Slidedown</title>
-    <meta name="viewport" content="width=device-width, user-scalable=no" />
-    <link rel="stylesheet" type="text/css" href="lib/solarized_dark.css" media="screen,print"/>
-    <link rel="stylesheet" type="text/css" href="slidedown.css" media="screen,print"/>
-    <link rel="stylesheet" type="text/css" href="dark-theme.css" media="screen,print" />
-    <script type="text/javascript" src="lib/hammer.js"></script>
-    <script type="text/javascript" src="slidedown.build.js"></script>
+  <title>Slidedown</title>
+  <meta name="viewport" content="width=device-width, user-scalable=no" />
+  <link rel="stylesheet" type="text/css" href="css/slidedown.layout.css" />
+  <link rel="stylesheet" type="text/css" href="css/mermaid/mermaid.css" />
 
-    <style type="text/css">
-        #slides {
-            height: 100%;
-        }
-    </style>
+  <!-- Dark Theme Combo -->
+  <!-- <link rel="stylesheet" type="text/css" href="css/theme/dark-theme.css" media="screen" /> -->
+  <!-- <link rel="stylesheet" type="text/css" href="css/hljs/solarized_dark.css" media="screen" /> -->
 
-    <script>
-        function parseQuery(querystring) {
-            // remove any preceding url and split
-            querystring = querystring.substring(querystring.indexOf('?')+1).split('&');
-            var params = {}, pair, d = decodeURIComponent;
-            // march and parse
-            for (var i = querystring.length - 1; i >= 0; i--) {
-                pair = querystring[i].split('=');
-                params[d(pair[0])] = d(pair[1]);
-            }
+  <!-- Light Theme Combo -->
+  <link rel="stylesheet" type="text/css" href="css/theme/light-theme.css" media="screen" />
+  <link rel="stylesheet" type="text/css" href="css/hljs/monokai_sublime.css" media="screen"/>
 
-            return params;
-        };
-        // console.log(document.location);
-        var mdSource = parseQuery(document.location.search).src || 'index.md' ||'README.markdown';
-        Slidedown.fromXHR(mdSource).to('#slides');
-    </script>
+  <!-- Always use Light theme for print -->
+  <link rel="stylesheet" type="text/css" href="css/slidedown.print.css" media="print" />
+  <link rel="stylesheet" type="text/css" href="css/theme/light-theme.css" media="print" />
+  <link rel="stylesheet" type="text/css" href="css/hljs/monokai_sublime.css" media="print"/>
+
+  <script type="text/javascript" src="lib/hammer.js"></script>
+  <script type="text/javascript" src="lib/mermaid.slim.min.js"></script>
+  <script type="text/javascript" src="slidedown.build.js"></script>
+  <script>
+  var queryString = Slidedown.parseQuery();
+
+  // to enable MathJax, add `&mathjax` after file.md (before the hash sign #)
+  // example: ?src=path/to/file.md&mathjax
+
+  var MathJaxSrc = "/mathjax/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+  Slidedown.enableMathJax(MathJaxSrc);
+  var mdSource = queryString.src || 'index.md';
+
+  Slidedown.fromXHR(mdSource).to('#slides', function() {
+    mermaid.init();
+  });
+  </script>
 </head>
 
 <body>
-        <div id="slides"></div>
+    <div id="slides"></div>
 </body>
 
 </html>
+<script type="text/javascript" src='src/mermaid_config.js'></script>

@@ -1,5 +1,4 @@
 .DS_Store
 /node_modules/
-/markdown
-/md
-index.md
+/lesson/
+/bower_components/
