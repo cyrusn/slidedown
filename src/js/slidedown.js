@@ -449,10 +449,11 @@ function setSvgViewBox() {
       svg.setAttribute('height', '100%');
     } else {
       var height = svg.style.height.replace('px','');
-      viewBox.width = width;
+      viewBox.width = 1024;
       viewBox.height = height;
       svg.setAttribute('width', Math.min(width, viewBox.width) + 'px');
       svg.style.height = '100%';
+      svg.parentNode.style.width = "auto";
     }
   });
 }

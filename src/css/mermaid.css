@@ -12,7 +12,7 @@
 
 @media screen {
   .gantt {
-    width: 80vw  !important;
+    width: 1024px;
   }
 }
 
