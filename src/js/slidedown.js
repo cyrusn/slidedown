@@ -123,10 +123,10 @@ Slidedown.prototype = {
 
       // change title by first h1
       changeTitle();
-      MathJax.Hub.Typeset();
       mermaid.init();
       focusTargetSlide();
       setSvgGanttViewBox();
+      MathJax.Hub.Typeset();
       responsiveIframe();
 
       window.addEventListener('hashchange', focusTargetSlide);
@@ -450,9 +450,6 @@ function setSvgGanttViewBox() {
   });
 }
 
-function replaceText (string, replaceString , regExp) {
-    return string.replace(regExp, replaceString);
-}
 
 function responsiveIframe() {
   var iframes = document.getElementsByClassName('responsiveIframe');
@@ -476,9 +473,9 @@ function CustomRenderer() {}
 
 CustomRenderer.prototype = new marked.Renderer();
 
-CustomRenderer.prototype.link = function(href, title, text) {
-  return '<a href="' + href + '" target="_blank">' + text + '</a>';
-};
+// CustomRenderer.prototype.link = function(href, title, text) {
+//   return '<a href="' + href + '" target="_blank">' + text + '</a>';
+// };
 
 CustomRenderer.prototype.code = function(code, lang) {
   if (!lang) {

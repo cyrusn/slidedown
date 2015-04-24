@@ -88,34 +88,12 @@ Slidedown.fromMarkdown('markdown source').to('#slides');
 ## [Click me to example](/?src=md/example.md)
 
 ***
-# The basic idea
-Write your presentations in a text editor.
-
-- No fancy WYSIWIG editor
-- No hand-written HTML
-- Just text (Markdown)
-
-Separate slides with `***`
-
-***
-# Pros
-
-- easy
-- saves time
-- looks great
-
-# Cons
-
-- none?
-
-
-***
 # Installation Guide
 
-1. ftp tools
-  + e.g. [FileZilla][FileZilla]
-2. markdown editor
+1. markdown editor
   + e.g. [Haroopad][haroopad]
+2. ftp tools
+  + e.g. [FileZilla][FileZilla]
 3. write your presentation
 4. upload to your host
 5. (option) add link of your presentation to `index.md`
@@ -124,12 +102,7 @@ Separate slides with `***`
 [FileZilla]: https://filezilla-project.org/
 [StackEdit]: https://stackedit.io/editor
 
-
 ***
-# Speical Thanks
+# Contributors
 - Forked From [Danial Tao](http://danieltao.com/slidedown)
 - [leesei](https://github.com/leesei/)
-
-***
-# The End
-
