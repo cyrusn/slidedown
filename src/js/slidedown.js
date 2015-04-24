@@ -119,11 +119,11 @@ Slidedown.prototype = {
 
       // change title by first h1
       changeTitle();
+      MathJax.Hub.Typeset();
+      mermaid.init();
       focusTargetSlide();
       setSvgGanttViewBox();
       responsiveIframe();
-      mermaid.init();
-      MathJax.Hub.Typeset();
 
       window.addEventListener('hashchange', focusTargetSlide);
     });

@@ -7,7 +7,7 @@ var minifyCss = require('gulp-minify-css');
 
 var slidedown = "./src/js/slidedown.js";
 
-gulp.task('build', function() {
+gulp.task('js', function() {
   return gulp.src(slidedown)
     .pipe(browserify())
     .pipe(minify())
@@ -23,6 +23,6 @@ gulp.task('css', function () {
 });
 
 gulp.task('watch', function() {
-  gulp.watch(slidedown, ['build']);
+  gulp.watch(slidedown, ['js']);
   gulp.watch('src/css/*.css', ['css']);
 });

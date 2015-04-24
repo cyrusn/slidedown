@@ -196,7 +196,6 @@ graph LR;
 
 [Learn][flowchart] and [try][editor] Mermaid.JS for flowchart.
 
-
 -----
 # Squence
 
@@ -211,8 +210,8 @@ sequenceDiagram
     Bob-->John: Jolly good!
 ```
 
-``` css
-%% example code of sequence diagram
+<pre class="hljs md">
+``` mermaid
 sequenceDiagram
     participant Alice
     participant Bob
@@ -222,6 +221,7 @@ sequenceDiagram
     John-xBob: How about you?
     Bob-->John: Jolly good!
 ```
+</pre>
 
 [Learn][sequence] and [try][editor] Mermaid.JS for sequence diagram.
 
@@ -232,26 +232,27 @@ sequenceDiagram
 gantt
     title A Gantt Diagram
     dateFormat  YYYY-MM-DD
-    section Section
-    A task           :a1, 2014-12-01, 30d
-    Another task     :after a1  , 20d
-    section Another
-    Task in sec      :2015-01-12  , 12d
-    anther task      :24d
+    section Section A
+    task A :a1, 2014-12-01, 1w
+    task B :after a1, 1w
+    section Section B
+    task C :b1, 2014-12-03, 3d
+    task D :6d
 ```
 
-```css
-%% example code of gantt
+<pre class="hljs md">
+``` mermaid
 gantt
     title A Gantt Diagram
     dateFormat  YYYY-MM-DD
-    section Section
-    A task           :a1, 2014-12-01, 30d
-    Another task     :after a1  , 20d
-    section Another
-    Task in sec      :2015-01-12  , 12d
-    anther task      :24d
+    section Section A
+    task A :a1, 2014-12-01, 1w
+    task B :after a1, 1w
+    section Section B
+    task C :b1, 2014-12-03, 3d
+    task D :6d
 ```
+</pre>
 
 [Learn][gantt] and [try][editor] Mermaid.JS for gantt graph.
 
