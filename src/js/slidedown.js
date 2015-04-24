@@ -127,7 +127,7 @@ Slidedown.prototype = {
       focusTargetSlide();
       MathJax.Hub.Typeset();
       responsiveIframe();
-      setSvgViewBox();
+      setMermaidSvgViewBox();
 
       window.addEventListener('hashchange', focusTargetSlide);
     });
@@ -433,7 +433,8 @@ function goToSlide(no) {
   };
 }
 
-function setSvgViewBox() {
+function setMermaidSvgViewBox() {
+  // set width, height, and viewBox for responsive view
   var svgs = document.querySelectorAll('.mermaid>svg');
   var width = window.innerWidth * 0.8;
 
@@ -442,19 +443,26 @@ function setSvgViewBox() {
   forEach(svgs, function(svg) {
     svg.setAttribute("preserveAspectRatio", "xMinYMin meet");
     var viewBox = svg.viewBox.baseVal;
-    console.log(viewBox);
-    if (viewBox.width) {
-      var ratio = viewBox.height / viewBox.width;
-      svg.setAttribute('width', Math.min(width, viewBox.width) + 'px');
-      svg.setAttribute('height', '100%');
-    } else {
-      var height = svg.style.height.replace('px','');
-      viewBox.width = 1024;
-      viewBox.height = height;
-      svg.setAttribute('width', Math.min(width, viewBox.width) + 'px');
-      svg.style.height = '100%';
-      svg.parentNode.style.width = "auto";
-    }
+    var parentNode = svg.parentNode;
+    switch (true) {
+        case /gantt/.test(parentNode.className):
+          // for gantt responsive
+          // as mermaid gantt didn't genernate viewBox,
+          // so set the dimension(viewBox) to 1024 and default height
+          // then reset back the width of parent, height to auto and 100% respectively
+          var height = svg.style.height.replace('px','');
+          viewBox.width = 1024;
+          viewBox.height = height;
+          svg.setAttribute('width', Math.min(width, viewBox.width) + 'px');
+          svg.style.height = '100%';
+          parentNode.style.width = "auto";
+          break;
+        default:
+          var ratio = viewBox.height / viewBox.width;
+          svg.setAttribute('width', Math.min(width, viewBox.width) + 'px');
+          svg.setAttribute('height', '100%');
+          break;
+      }
   });
 }
 
