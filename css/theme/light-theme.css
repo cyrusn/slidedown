@@ -1,27 +1,32 @@
-html, body {
+html,
+body {
   background-color: #F6F5F6;
 }
 
-em, del, strong {
+em,
+del,
+strong {
   color: #f92672;
 }
 
 .slide h1,
 .slide h2,
 .slide h3 {
-  color: #26272B;
+  color: #4A4A4A;
 }
 
 .slide .content {
   color: #555555;
 }
 
-.slide blockquote {
-  background-color: #eee;
-}
+/*.slide pre {
+  color: #F8F8F2;
+  background-color: #23241F;
+}*/
 
-.slide pre {
-  /*background-color: #eee;*/
+.slide blockquote {
+  color: #4A4A4A;
+  background-color: #eee;
 }
 
 .slide li code,

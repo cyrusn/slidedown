@@ -1,17 +1,18 @@
-# Slidedown
-- [Download](http://github.com/cyrusn/slidedown)
-- Forked From [Danial Tao](http://danieltao.com/slidedown)
+# SlideDown
+## README
 
 ***
+# Support Browser
+- Chrome (OSX, Window, Linux)
+- Safari (OSX)
 
-# The basic idea
-Write your presentations in a text editor.
+***
+# Navigation Options
 
-- No fancy WYSIWIG editor
-- No hand-written HTML
-- Just text (Markdown)
-
-Separate slides with `***`.
+- Use `left` + `right` arrow keys
+- Click on the `left` + `right` sides of the screen
+- Use `home`/ `end` key to go to first/ last page
+- Use `h` key to go to root page
 
 ***
 # Markdown Syntax
@@ -19,60 +20,6 @@ Separate slides with `***`.
 ## Learn `markdown syntax`
 - [Basic](https://help.github.com/articles/markdown-basics/)
 - [GitHub Flavored Markdown](https://help.github.com/articles/github-flavored-markdown/)
-
-***
-# Installation Guild
-
-1. ftp tools
-  + e.g. [FileZilla][FileZilla]
-1. markdown editor
-  + e.g. [StackEdit][StackEdit]
-1. write your presentation text editor
-1. add link of your presentation to `index.md`
-1. upload to your host
-
-[FileZilla]: https://filezilla-project.org/
-[StackEdit]: https://stackedit.io/editor
-
-***
-
-# How it works
-
-Slidedown parses Markdown, then splits up the HTML into slides by splitting at
-every `<HR>` tag.
-
-***
-
-# How it works
-
-Every slide has a *layout* which is inferred by the elements making up that
-slide.
-
-***
-
-# For example
-## this slide has an `<h1>` and an `<h2>`
-
-***
-
-# Pros
-
-- easy
-- saves time
-- looks great
-
-# Cons
-
-- none?
-
-***
-
-# Navigation
-
-You can navigate left/right through the slides using the keyboard.
-
-You can also click on either side of the screen, or use swipe gestures
-on mobile devices.
 
 ***
 
@@ -83,32 +30,48 @@ Specify Markdown file with `src` in URL:
 # defaults to 'index.md'
 http://localhost:8000/
 
-# You can use to post your relative link of your src file to make like table of content.
-# if index.md not exist, then defaults to 'README.markdown'
-# or reach the readme file from below
-http://localhost:8000/?src=README.markdown
-
 # to any files you created
 http://localhost:8000/?src=path/to/file.md
-```
 
+# or even any files on internet
+http://localhost:8000/?src=http://site.com/path/to/file.md
+```
 ***
+# how to use it - 2
+## Use Dropbox share link
 
-# How to use it - 2
-
-```javascript
-// Fetch the source Markdown using an AJAX request
-Slidedown.fromXHR('path/to/slides.markdown');
-
-// Or if you have the Markdown in a string already
-Slidedown.fromMarkdown('markdown source');
-
-// Or if you actually have HTML rendered from Markdown already
-Slidedown.fromHTML('html source');
+if you got a share link of a markdown file like below
+``` bash
+https://www.dropbox.com/s/wqudvpda2pd2ybt/readme.md?dl=0
 ```
+
+copy the string ***after*** `.com/` and ***before*** `?dl=0` and paste after `?db=`
+``` bash
+http://localhost:8000/?db=s/wqudvpda2pd2ybt/readme.md
+```
+
+you may see this youtube to learn how to enable public folder
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/k5QAbfuWZlc" frameborder="0" allowfullscreen></iframe>
 
 ***
 # How to use it - 3
+## For Advance User
+
+``` html
+<!-- Or if you have the Markdown in a string already -->
+<script type="text/javascript">
+  Slidedown.fromMarkdown('markdown source');
+</script>
+
+<!-- Or if you actually have HTML rendered from Markdown already -->
+<script type="text/javascript">
+  Slidedown.fromHTML('html source');
+</script>
+```
+***
+# How to use it - 4
+## For Advance User
 By default, slides will be dumped directly into the document's `<body>` element.
 You can change this:
 
@@ -124,5 +87,49 @@ Slidedown.fromMarkdown('markdown source').to('#slides');
 ```
 
 ***
+# The basic idea
+Write your presentations in a text editor.
 
+- No fancy WYSIWIG editor
+- No hand-written HTML
+- Just text (Markdown)
+
+Separate slides with `***`
+
+***
+# Pros
+
+- easy
+- saves time
+- looks great
+
+# Cons
+
+- none?
+
+
+***
+# Installation Guide
+
+1. ftp tools
+  + e.g. [FileZilla][FileZilla]
+2. markdown editor
+  + e.g. [Haroopad][haroopad]
+3. write your presentation
+4. upload to your host
+5. (option) add link of your presentation to `index.md`
+
+[haroopad]: http://pad.haroopress.com/
+[FileZilla]: https://filezilla-project.org/
+[StackEdit]: https://stackedit.io/editor
+
+
+***
+# Speical Thanks
+- [Download](http://github.com/cyrusn/slidedown)
+- Forked From [Danial Tao](http://danieltao.com/slidedown)
+
+
+***
 # The End
+

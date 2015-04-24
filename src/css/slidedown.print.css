@@ -12,7 +12,7 @@
     background: white;
     display: block;
     margin: 0;
-    font-size: 120% !important;
+    /*font-size: 120% !important;*/
     box-shadow: 0;
   }
   h1 {
@@ -29,6 +29,7 @@
   .noprint {
     display: hidden
   }
+
   .slide footer {
     display: none !important;
   }

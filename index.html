@@ -3,10 +3,7 @@
 
 <head>
   <title>Slidedown</title>
-  <meta name="viewport" content="width=device-width, user-scalable=no" />
-  <link rel="stylesheet" type="text/css" href="css/slidedown.layout.css" />
-  <link rel="stylesheet" type="text/css" href="css/mermaid/mermaid.css" />
-
+  <meta name="viewport" content="width=device-width, user-scalable=no" charset="UTF-8" />
   <!-- Dark Theme Combo -->
   <!-- <link rel="stylesheet" type="text/css" href="css/theme/dark-theme.css" media="screen" /> -->
   <!-- <link rel="stylesheet" type="text/css" href="css/hljs/solarized_dark.css" media="screen" /> -->
@@ -15,27 +12,52 @@
   <link rel="stylesheet" type="text/css" href="css/theme/light-theme.css" media="screen" />
   <link rel="stylesheet" type="text/css" href="css/hljs/monokai_sublime.css" media="screen"/>
 
-  <!-- Always use Light theme for print -->
-  <link rel="stylesheet" type="text/css" href="css/slidedown.print.css" media="print" />
-  <link rel="stylesheet" type="text/css" href="css/theme/light-theme.css" media="print" />
-  <link rel="stylesheet" type="text/css" href="css/hljs/monokai_sublime.css" media="print"/>
-
+  <!-- Load src for plugins -->
+  <!-- <script type="text/javascript" src="mathjax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script> -->
+  <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
   <script type="text/javascript" src="lib/hammer.js"></script>
   <script type="text/javascript" src="lib/mermaid.slim.min.js"></script>
-  <script type="text/javascript" src="slidedown.build.js"></script>
-  <script>
-  var queryString = Slidedown.parseQuery();
+  <script type="text/javascript" src="config/mermaid_config.js"></script>
 
-  // to enable MathJax, add `&mathjax` after file.md (before the hash sign #)
-  // example: ?src=path/to/file.md&mathjax
+  <!-- Load SlideDown JS and CSS -->
+  <link rel="stylesheet" type="text/css" href="build/slidedown.build.css" />
+  <script type="text/javascript" src="build/slidedown.build.js"></script>
 
-  var MathJaxSrc = "/mathjax/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
-  Slidedown.enableMathJax(MathJaxSrc);
-  var mdSource = queryString.src || 'index.md';
+  <!-- Configuration for MathJax-->
+  <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [['$', '$'],['$$$', '$$$']]
+        },
+        TeX: {
+          extensions: ['mhchem.js']
+        }
+      });
+      MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
+  </script>
 
-  Slidedown.fromXHR(mdSource).to('#slides', function() {
-    mermaid.init();
-  });
+  <!-- Configuration of SlideDown -->
+  <script type="text/javascript">
+    var queryString = Slidedown.parseQuery();
+
+    // you can replace `index.md` to dropbox share file.
+    // replace `www.dropbox.com` to `dl.dropboxusercontent.com` and delete `?dl=0`
+    // e.g. https://dl.dropboxusercontent.com/s/wqudvpda2pd2ybt/index.md
+    var mdSource = queryString.src || 'index.md';
+
+    // use dropbox share link
+    // dropbox link: https://www.dropbox.com/s/wqudvpda2pd2ybt/readme.md?dl=0
+    // example: http://localhost:8080?db=s/wqudvpda2pd2ybt/readme.md
+
+    // or your dropbox public folder id
+    var validateDropbox = new RegExp(".md$|.markdown$", 'i');
+
+    if (validateDropbox.test(queryString.db) ){
+      mdSource = "https://dl.dropboxusercontent.com/" + queryString.db;
+    }
+
+    console.log("Source: ", mdSource);
+    Slidedown.fromXHR(mdSource).to('#slides');
   </script>
 </head>
 
@@ -44,4 +66,4 @@
 </body>
 
 </html>
-<script type="text/javascript" src='src/mermaid_config.js'></script>
+

@@ -1,5 +1,7 @@
-# List of Presentations
+# User Guide
 
-- [README](?src=README.md)
-- [Todo](?src=md/todo.md)
-- [Example](?src=md/example.md&mathjax)
+- [ReadMe](?src=README.md)
+- [Example](?src=md/example.md)
+- [How to use dropbox share markdown](?src=README.md#slide-6)
+- [See example.md](md/example.md)
+

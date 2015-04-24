@@ -101,4 +101,13 @@ but the presenter can use control click during the presentation to open in new t
 - `home`/`end` goto first/last slide instead
 - use `h` key to go to root page instead
 -----
+
+# Use Dropbox to serve files
+use a clever way to parse dropbox link
+accept both `s/l2ets7iwsu0nj7y/example.md` and `l2ets7iwsu0nj7y/example.md` 都accept
+
+file | folder
+---|---
+s|sh
+
 # End

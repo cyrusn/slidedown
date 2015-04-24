@@ -44,8 +44,8 @@ Slidedown.prototype = {
   to: function(target, cb) {
     this.target = target;
 
-    whenReady(function(){
-      if(typeof cb === "function"){
+    whenReady(function() {
+      if (typeof cb === "function") {
         cb();
       }
     });
@@ -87,8 +87,6 @@ Slidedown.prototype = {
         slidedown.append(element);
       });
 
-      // change title by first h1
-      changeTitle();
       // Attach left/right keyboard shortcuts
       handleKey(39, nextSlide);
       handleKey(37, prevSlide);
@@ -101,10 +99,10 @@ Slidedown.prototype = {
       // using `home` key to go to first page
       handleKey(36, goToSlide(1));
       // using `end` key to go to last page
-      handleKey(35, goToSlide(slides.length-1));
+      handleKey(35, goToSlide(slides.length - 1));
 
       // Using `h` key to go to root page
-      handleKey(72, function(){
+      handleKey(72, function() {
         location.assign(location.pathname);
       });
 
@@ -118,10 +116,15 @@ Slidedown.prototype = {
           hammer.on('swiperight', prevSlide);
         }(Hammer));
       }
-      // Focus on the target slide (or first, by default)
-      mermaid.init();
+
+      // change title by first h1
+      changeTitle();
       focusTargetSlide();
       setSvgGanttViewBox();
+      responsiveIframe();
+      mermaid.init();
+      MathJax.Hub.Typeset();
+
       window.addEventListener('hashchange', focusTargetSlide);
     });
 
@@ -172,43 +175,14 @@ Slidedown.prototype = {
       params[d(pair[0])] = d(pair[1]);
     }
     return params;
-  },
-
-  enableMathJax: function(src) {
-    if (this.parseQuery().hasOwnProperty('mathjax')) {
-      var script = document.createElement('script');
-      script.src = src;
-      script.type = "text/javascript";
-      script.text = "MathJax.Hub.Config({ tex2jax: {inlineMath: [['$','$']]} });";
-
-      document
-        .getElementsByTagName('head')[0]
-        .appendChild(script);
-
-      // We have to wait for `marked`'s returned HTML before invoking MathJax to process the math markup
-      whenReady(function() {
-        MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
-        setTimeout(function() {
-          MathJax.Hub.Typeset();
-        }, 0);
-      });
-    }
   }
 };
-
-function changeTitle(){
-  var firstH1 = document.getElementsByTagName("h1")[0];
-  var title = firstH1 ? firstH1.textContent:'slidedown';
-  document.title = title;
-  return title;
-}
 
 function whenReady(callback) {
   if (document.readyState === "complete") {
     setTimeout(callback, 0);
     return;
   }
-
   window.addEventListener('load', callback);
 }
 
@@ -448,43 +422,70 @@ function focusTargetSlide() {
   addClass(targetSlide.nextElementSibling, 'next');
 }
 
-function goToSlide(no){
-  return function () {
+function goToSlide(no) {
+  return function() {
     setSlideId('slide-' + no);
     focusTargetSlide();
   };
 }
 
-function setSvgGanttViewBox(){
-  var svgs = document.querySelectorAll('.gantt > svg');
+function setSvgGanttViewBox() {
+  var svgs = document.querySelectorAll('.mermaid>svg');
+  var width = window.innerWidth * 0.8;
 
-  forEach(svgs, function(svg){
-    var height = svg.offsetHeight;
-    var width = svg.offsetWidth;
-    svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
-    svg.setAttribute('preserveAspectRatio', 'xMinYMin');
+  if (!svgs.length) return;
+
+  forEach(svgs, function(svg) {
+    svg.setAttribute("preserveAspectRatio", "xMinYMin meet");
+    var viewBox = svg.viewBox.baseVal;
+    if (viewBox.width) {
+      var ratio = viewBox.height / viewBox.width;
+      svg.setAttribute('width', Math.min(width, viewBox.width) + 'px');
+      svg.setAttribute('height', '100%');
+    }
   });
+}
+
+function responsiveIframe() {
+  var iframes = document.getElementsByTagName('iframe');
+  if (!iframes.length) return;
+  forEach(iframes, function(iframe) {
+    var width = Math.min(window.innerWidth * 0.8, iframe.width);
+    var ratio = iframe.height / iframe.width;
+    iframe.width = Math.floor(width) + "px";
+    iframe.height = Math.floor(width * ratio) + "px";
+  });
+}
+
+function changeTitle() {
+  var firstH1 = document.getElementsByTagName("h1")[0];
+  var title = firstH1 ? firstH1.textContent : 'slidedown';
+  document.title = title;
+  return title;
 }
 
 function CustomRenderer() {}
 
 CustomRenderer.prototype = new marked.Renderer();
 
-CustomRenderer.prototype.link = function(href, title, text){
-    return '<a href="'+ href + '" target="_blank">' + text +'</a>';
+CustomRenderer.prototype.link = function(href, title, text) {
+  return '<a href="' + href + '" target="_blank">' + text + '</a>';
 };
 
 CustomRenderer.prototype.code = function(code, lang) {
   if (!lang) {
+    return '<pre><code class="hljs">' + code + '</code></pre>';
+    // return marked.Renderer.prototype.code.call(this, code, lang);
+  }
 
-    if(code.match(/^\s*sequenceDiagram/)){
-      return '<div class="mermaid sequenceDiagram">'+code+'</div>';
-    } else if(code.match(/^\s*graph/)){
-      return '<div class="mermaid graph">'+code+'</div>';
-    } else if (code.match(/^\s*gantt/)){
-      return '<div class="mermaid gantt">'+code+'</div>';
+  if (lang == 'mermaid') {
+    if (code.match(/^\s*sequenceDiagram/)) {
+      return '<div class="mermaid sequenceDiagram">' + code + '</div>';
+    } else if (code.match(/^\s*graph/)) {
+      return '<div class="mermaid graph">' + code + '</div>';
+    } else if (code.match(/^\s*gantt/)) {
+      return '<div class="mermaid gantt">' + code + '</div>';
     }
-    return marked.Renderer.prototype.code.call(this, code, lang);
   }
 
   var html = hljs.highlight(lang, code).value;
@@ -509,6 +510,5 @@ window.Slidedown = staticize(Slidedown, [
   'fromHTML',
   'fromMarkdown',
   'fromXHR',
-  'parseQuery',
-  'enableMathJax'
+  'parseQuery'
 ]);

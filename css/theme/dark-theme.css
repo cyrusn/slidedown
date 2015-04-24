@@ -3,7 +3,9 @@ body {
   background-color: #222222;
 }
 
-em, del, strong{
+em,
+del,
+strong {
   color: #f92672;
 }
 
@@ -11,7 +13,6 @@ em, del, strong{
 .slide h2,
 .slide h3 {
   color: #c8cecc;
-  text-align: center;
 }
 
 .slide .content {
@@ -20,10 +21,6 @@ em, del, strong{
 
 .slide blockquote {
   color: #808080;
-  background-color: #ccc;
-}
-
-.slide pre {
   background-color: #ccc;
 }
 

@@ -14,27 +14,29 @@
   }
 }
 
+h3, h4, h5, h6 {
+  padding: 0 5%;
+  margin: 0;
+  text-align: left;
+}
 
 body {
   font-family: sans-serif;
 }
 
 p {
+  margin: auto;
   text-align: left;
 }
 
 code {
+  margin: auto;
   font-family: monospace;
-  text-align: left;
-}
-
-pre {
   text-align: left;
 }
 
 ol, ul {
   margin: 0 1%;
-  /*position:relative;*/
   display: inline-block;
   text-align: left;
 }
@@ -47,7 +49,7 @@ li ol {
 }
 
 p {
-  padding: 1% 5%
+  padding: 0.5em 5%
 }
 
 a:link {
@@ -66,11 +68,9 @@ a:active {
   text-decoration: underline;
 }
 
-del,
-em,
 table {
-  margin: 0;
-  width: 100%;
+  margin: auto;
+  text-align:center !important;
   max-width: 100%;
   margin-bottom: 20px;
   background-color: transparent;
@@ -112,15 +112,14 @@ img {
 
 li {
   margin: 0.5em 0;
-  padding-right: 1em;
-  padding-left: 1em;
+  padding-right: 0.5em;
+  padding-left: 0.5em;
 }
 
 a {
   background-color: transparent;
   color: #337ab7;
 }
-
 
 blockquote {
   border: 1px solid #999;
@@ -139,10 +138,14 @@ blockquote {
     min-height: 100%;
     width: 100%;
     position: absolute;
-    /*display: none;*/
     visibility: hidden;
     overflow-x: hidden;
   }
+
+  .slide iframe {
+    display: none;
+  }
+
   .slide .content {
     min-height: calc(100% - 48px);
     text-align: center;
@@ -157,7 +160,6 @@ blockquote {
   }
   .slide footer {
     /*semi hidden the footer, user have to scroll down for instructions*/
-    /*bottom: 12px;*/
     position: absolute;
     width: 100%;
     text-align: center;
@@ -177,16 +179,22 @@ blockquote {
     display: block;
     visibility: visible;
     /* trigger transition animation */
-    transition: left 0.5s ease;
-    -moz-transition: left 0.5s ease;
-    -webkit-transition: left 0.5s ease;
+    /*transition: left 0.5s ease;*/
+    /*-moz-transition: left 0.5s ease;*/
+    /*-webkit-transition: left 0.5s ease;*/
   }
+
+  .slide.current iframe {
+    display: inline-block
+  }
+
   .slide.previous {
     left: -100%;
   }
   .slide.current {
     left: 0;
   }
+
   .slide.next {
     left: 100%;
   }
@@ -194,7 +202,7 @@ blockquote {
 
 @media screen and (max-width: 767px) {
   body {
-    font-size: 80% !important;
+    font-size: 90% !important;
   }
   .slide footer {
     display: none !important;
@@ -203,22 +211,23 @@ blockquote {
 
 @media screen and (max-width: 991px) {
   body {
-    font-size: 125%;
+    font-size: 120%;
   }
 }
 
-@media screen and (min-width: 992px) {
+@media screen and (max-width: 1199px) {
   body {
-    font-size: 200%;
-  }
-  .slide .content {
-    max-width: 960px;
+    font-size: 150%;
   }
 }
 
 @media screen and (min-width: 1200px) {
+  body {
+    font-size: 180%;
+  }
+
   .slide .content {
-    max-width: 90%;
+    max-width: 82%;
   }
 }
 
@@ -227,17 +236,18 @@ blockquote {
 }
 
 .slide h1,
-.slide h2,
-.slide h3 {
+.slide h2 {
   margin-left: 5px;
   margin-right: 5px;
   text-align: center;
 }
 
 .slide pre {
-  position: relative;
+  text-align: left;
+  margin: 1em auto;
   padding: 12px;
   white-space: pre-wrap;
+  border-radius: 4px;
 }
 
 .slide blockquote {
@@ -318,12 +328,12 @@ blockquote {
 }
 
 @media screen {
+  .slide pre {
+    width: 80vw;
+  }
   .slideNo{
     display: none;
   }
-}
-
-@media screen {
   .hidden{
     display: none
   }
