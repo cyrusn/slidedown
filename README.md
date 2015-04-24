@@ -127,9 +127,7 @@ Separate slides with `***`
 
 ***
 # Speical Thanks
-- [Download](http://github.com/cyrusn/slidedown)
-- Forked From [Danial Tao](http://danieltao.com/slidedown)
-
+## Forked From [Danial Tao](http://danieltao.com/slidedown)
 
 ***
 # The End
