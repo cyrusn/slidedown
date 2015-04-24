@@ -115,23 +115,26 @@ Excepteur sint ~~occaecat~~ cupidatat nonproident, sunt in culpa qui officia des
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/4O9o4CKTGzQ" frameborder="0" allowfullscreen></iframe>
 
-<!-- Show the YouTube link on print only -->
+<div class="screen-only">
+</div>
 
-<div class="hidden">
-www.youtube.com/embed/4O9o4CKTGzQ
+<div class="print-only">
+    www.youtube.com/embed/4O9o4CKTGzQ
 </div>
 
 -----
 # [TimelineJS][timelinejs]
 
-<iframe src='http://cdn.knightlab.com/libs/timeline/latest/embed/index.html?source=0Agl_Dv6iEbDadHdKcHlHcTB5bzhvbF9iTWwyMmJHdkE&font=Bevan-PotanoSans&maptype=toner&lang=en&height=650' width='960' height='650' frameborder='0'></iframe>
-
+<div class="screen-only">
+    <iframe src='http://cdn.knightlab.com/libs/timeline/latest/embed/index.html?source=0Agl_Dv6iEbDadHdKcHlHcTB5bzhvbF9iTWwyMmJHdkE&font=Bevan-PotanoSans&maptype=toner&lang=en&height=650' width='960' height='650' frameborder='0'></iframe>
+</div>
 
 -----
 
 # GoogleMap
-<iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d1844.1148177117416!2d114.20711185515593!3d22.420381136700325!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3404089ce8ada749%3A0x5bd1c53294d0f7ce!2sThe+Chinese+University+of+Hong+Kong!5e0!3m2!1sen!2s!4v1429842328715" width="600" height="450" frameborder="0" style="border:0"></iframe>
-
+<div class="screen-only">
+    <iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d1844.1148177117416!2d114.20711185515593!3d22.420381136700325!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3404089ce8ada749%3A0x5bd1c53294d0f7ce!2sThe+Chinese+University+of+Hong+Kong!5e0!3m2!1sen!2s!4v1429842328715" width="600" height="450" frameborder="0" style="border:0"></iframe>
+</div>
 -----
 # [MathJax][mathjax]
 
@@ -170,8 +173,22 @@ $$
 ```
 
 -----
+# Mermaid
+## Flowchart, Sequence Diagram, Gantt
 
+Include all graph syntax with code language `mermaid`:
 
+<pre class="hljs md">
+``` mermaid
+graph LR;
+    A[Hard edge] -->|Link text| B((Round edge))
+    B --> C{Decision}
+    C -->|One| D[Result one]
+    C -->two
+```
+</pre>
+
+-----
 # Flowchart
 
 ``` mermaid
@@ -198,18 +215,6 @@ graph TB
      class di orange
 ```
 
-Include all graph syntax with code language `mermaid`:
-
-<pre class="hljs md">
-``` mermaid
-graph LR;
-    A[Hard edge] -->|Link text| B((Round edge))
-    B --> C{Decision}
-    C -->|One| D[Result one]
-    C -->two
-```
-</pre>
-
 [Learn][flowchart] and [try][editor] Mermaid.JS for flowchart.
 
 -----
@@ -228,22 +233,6 @@ sequenceDiagram
     John->>Bob: How about you?
     Bob-->>John: Jolly good!
 ```
-
-<pre class="hljs md">
-``` mermaid
-sequenceDiagram
-    participant Alice
-    participant Bob
-    Alice->>John: Hello John, how are you?
-    loop Healthcheck
-        John->>John: Fight against hypochondria
-    end
-    Note right of John: Rational thoughts<br/>prevail...
-    John-->>Alice: Great!
-    John->>Bob: How about you?
-    Bob-->>John: Jolly good!
-```
-</pre>
 
 [Learn][sequence] and [try][editor] Mermaid.JS for sequence diagram.
 
@@ -280,21 +269,17 @@ gantt
     Add another diagram to demo page    : 48h
 ```
 
-<pre class="hljs md">
-``` mermaid
-gantt
-    title A Gantt Diagram
-    dateFormat  YYYY-MM-DD
-    section Section A
-    task A :a1, 2014-12-01, 1w
-    task B :after a1, 1w
-    section Section B
-    task C :b1, 2014-12-03, 3d
-    task D :6d
-```
-</pre>
-
 [Learn][gantt] and [try][editor] Mermaid.JS for gantt graph.
+
+----
+# Furthermore
+- Print this presenation
+- View it on mobile
+- Print Only
+    + `<div class='print-only'> your code </div>`
+- Screen Only
+    + `<div class='screen-only'> your code </div>`
+
 
 ----
 # End

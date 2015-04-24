@@ -12,7 +12,7 @@
     background: white;
     display: block;
     margin: 0;
-    /*font-size: 120% !important;*/
+    font-size: 100% !important;
     box-shadow: 0;
   }
   h1 {
@@ -26,8 +26,8 @@
   h6 {
     text-align: left !important;
   }
-  .noprint {
-    display: hidden
+  .screen-only, .screen-only * {
+    display: none !important;
   }
 
   .slide footer {

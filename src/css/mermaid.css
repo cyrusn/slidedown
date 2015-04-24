@@ -12,7 +12,7 @@
 
 @media screen {
   .gantt {
-    width: 80vw !important;
+    width: 80vw  !important;
   }
 }
 
@@ -21,6 +21,7 @@
     display: block;
     left: 10%;
     right: 10%;
+    height: auto;
   }
   .mermaid svg {
     width: 100%;

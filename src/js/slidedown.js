@@ -125,9 +125,9 @@ Slidedown.prototype = {
       changeTitle();
       mermaid.init();
       focusTargetSlide();
-      setSvgGanttViewBox();
       MathJax.Hub.Typeset();
       responsiveIframe();
+      setSvgViewBox();
 
       window.addEventListener('hashchange', focusTargetSlide);
     });
@@ -433,7 +433,7 @@ function goToSlide(no) {
   };
 }
 
-function setSvgGanttViewBox() {
+function setSvgViewBox() {
   var svgs = document.querySelectorAll('.mermaid>svg');
   var width = window.innerWidth * 0.8;
 
@@ -442,10 +442,17 @@ function setSvgGanttViewBox() {
   forEach(svgs, function(svg) {
     svg.setAttribute("preserveAspectRatio", "xMinYMin meet");
     var viewBox = svg.viewBox.baseVal;
+    console.log(viewBox);
     if (viewBox.width) {
       var ratio = viewBox.height / viewBox.width;
       svg.setAttribute('width', Math.min(width, viewBox.width) + 'px');
       svg.setAttribute('height', '100%');
+    } else {
+      var height = svg.style.height.replace('px','');
+      viewBox.width = width;
+      viewBox.height = height;
+      svg.setAttribute('width', Math.min(width, viewBox.width) + 'px');
+      svg.style.height = '100%';
     }
   });
 }

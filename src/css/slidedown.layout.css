@@ -346,7 +346,7 @@ blockquote {
   .slideNo{
     display: none;
   }
-  .hidden{
-    display: none
+  .print-only {
+    display: none !important;
   }
 }
