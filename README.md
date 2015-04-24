@@ -50,10 +50,6 @@ copy the string ***after*** `.com/` and ***before*** `?dl=0` and paste after `?d
 http://localhost:8000/?db=s/wqudvpda2pd2ybt/readme.md
 ```
 
-you may see this youtube to learn how to enable public folder
-
-<iframe width="560" height="315" src="https://www.youtube.com/embed/k5QAbfuWZlc" frameborder="0" allowfullscreen></iframe>
-
 ***
 # How to use it - 3
 ## For Advance User
