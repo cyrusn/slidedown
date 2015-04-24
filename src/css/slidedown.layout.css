@@ -154,7 +154,7 @@ blockquote {
     overflow-x: hidden;
   }
 
-  .slide .reponsiveIframe {
+  .slide .responsiveIframe {
     display: none;
   }
 
@@ -196,7 +196,8 @@ blockquote {
     /*-webkit-transition: left 0.5s ease;*/
   }
 
-    display: inline-block
+  .slide.current .responsiveIframe{
+    display: inline-block;
   }
 
   .slide.previous {

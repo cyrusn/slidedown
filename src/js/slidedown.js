@@ -75,8 +75,9 @@ Slidedown.prototype = {
         content.className = 'content';
         content.setAttribute('data-layout', slide.layout);
 
-        var iframeRegExp = new RegExp("<iframe", "g");
-        var resultHTML = slide.html.replace(iframeRegExp, '<iframe class="reponsiveIframe"');
+        // add class `responsiveIframe` for iframe
+        var resultHTML = slide.html.replace(new RegExp("<iframe", "g"), '<iframe class="responsiveIframe"');
+
         content.innerHTML = resultHTML + addSlideNumberToSlide;
         element.appendChild(content);
 
@@ -449,8 +450,12 @@ function setSvgGanttViewBox() {
   });
 }
 
+function replaceText (string, replaceString , regExp) {
+    return string.replace(regExp, replaceString);
+}
+
 function responsiveIframe() {
-  var iframes = document.getElementsByClassName('reponsiveIframe');
+  var iframes = document.getElementsByClassName('responsiveIframe');
   if (!iframes.length) return;
   forEach(iframes, function(iframe) {
     var width = Math.min(window.innerWidth * 0.8, iframe.width);
