@@ -9,6 +9,10 @@ strong {
   color: #f92672;
 }
 
+.githubIcon a {
+  color: #808080 !important;
+}
+
 .slide h1,
 .slide h2,
 .slide h3 {

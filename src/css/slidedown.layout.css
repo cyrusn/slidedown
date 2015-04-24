@@ -68,6 +68,18 @@ a:active {
   text-decoration: underline;
 }
 
+.githubIcon a {
+  right: 12px;
+  position: absolute;
+  margin: 12px;
+  font-size: 120%;
+  z-index: 1;
+}
+.githubIcon a:hover {
+  text-decoration: none;
+  color: #4183C4 !important;
+}
+
 table {
   margin: auto;
   text-align:center !important;
@@ -142,7 +154,7 @@ blockquote {
     overflow-x: hidden;
   }
 
-  .slide iframe {
+  .slide .reponsiveIframe {
     display: none;
   }
 
@@ -184,7 +196,6 @@ blockquote {
     /*-webkit-transition: left 0.5s ease;*/
   }
 
-  .slide.current iframe {
     display: inline-block
   }
 
