@@ -87,6 +87,11 @@ Slidedown.fromMarkdown('markdown source').to('#slides');
 ```
 
 ***
+# Example
+
+## [Click me to example](/?src=md/example.md)
+
+***
 # The basic idea
 Write your presentations in a text editor.
 
