@@ -39,6 +39,11 @@ code {
   text-align: left;
 }
 
+.content>ul,
+.content>ol {
+  max-width: 80%
+}
+
 ol,
 ul {
   margin: 0.5em 1em;
@@ -196,6 +201,7 @@ blockquote {
   }
   .slide.current .responsiveIframe {
     /*visibility: visible;*/
+
     display: inline-block !important;
   }
   .slide.previous {
