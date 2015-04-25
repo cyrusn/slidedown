@@ -92,10 +92,28 @@ To see what else you can do with [Markdown][basic]
 |Erin      | lamb madras        | $5         |
 
 -----
+# [Octicons][octicons]
+
+There are many icons you can use, here are some example.
+For Details, please go to [octicons page][octicons]
+
+| Icon                                            | Code                                              |
+| :---:                                           | :---:                                             |
+| <span class="octicon octicon-heart"></span>     | `<span class="octicon octicon-heart"></span>`     |
+| <span class="octicon octicon-hourglass"></span> | `<span class="octicon octicon-hourglass"></span>` |
+| <span class="octicon octicon-lock"></span>      | `<span class="octicon octicon-lock"></span>`      |
+| <span class="octicon octicon-gear"></span>      | `<span class="octicon octicon-gear"></span>`      |
+| <span class="octicon octicon-person"></span>    | `<span class="octicon octicon-person"></span>`    |
+| <span class="octicon octicon-tag"></span>       | `<span class="octicon octicon-tag"></span>`       |
+| <span class="octicon octicon-squirrel"></span>  | `<span class="octicon octicon-squirrel"></span>`  |
+
+-----
 # Column 1
+
 1. apple
 2. orange
 3. pear
+
 
 # Column 2
 - foo
@@ -303,6 +321,7 @@ gantt
 [timelinejs]: http://timeline.knightlab.com/
 [mathjax]: http://meta.math.stackexchange.com/questions/5020/mathjax-basic-tutorial-and-quick-reference
 [chem]: ftp://ftp.comp.hkbu.edu.hk/pub/TeX/CTAN/macros/latex/contrib/mhchem/mhchem.pdf
+[octicons]: https://octicons.github.com/
 [flowchart]: http://knsv.github.io/mermaid/flowchart.html
 [sequence]: http://knsv.github.io/mermaid/sequenceDiagram.html
 [gantt]: http://knsv.github.io/mermaid/gantt.html

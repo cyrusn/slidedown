@@ -26,10 +26,11 @@
   h6 {
     text-align: left !important;
   }
-  .screen-only, .screen-only * {
+
+  .screen-only,
+  .screen-only * {
     display: none !important;
   }
-
   .slide footer {
     display: none !important;
   }

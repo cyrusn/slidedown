@@ -14,7 +14,10 @@
   }
 }
 
-h3, h4, h5, h6 {
+h3,
+h4,
+h5,
+h6 {
   padding: 0 5%;
   margin: 0;
   text-align: left;
@@ -26,6 +29,7 @@ body {
 
 p {
   margin: auto;
+  padding: 0.5em 5%;
   text-align: left;
 }
 
@@ -35,12 +39,12 @@ code {
   text-align: left;
 }
 
-ol, ul {
+ol,
+ul {
   margin: 0 1%;
   display: inline-block;
   text-align: left;
 }
-
 
 li ul,
 li ol {
@@ -48,33 +52,16 @@ li ol {
   text-align: left;
 }
 
-p {
-  padding: 0.5em 5%
-}
-
-a:link {
-  text-decoration: none;
-}
-
-a:visited {
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-a:active {
-  text-decoration: underline;
-}
-
-.githubIcon a {
-  right: 12px;
+.githubIcon {
   position: absolute;
   margin: 12px;
-  font-size: 120%;
   z-index: 1;
 }
+
+.octicon {
+  font-size: 120%;
+}
+
 .githubIcon a:hover {
   text-decoration: none;
   color: #4183C4 !important;
@@ -82,7 +69,7 @@ a:active {
 
 table {
   margin: auto;
-  text-align:center !important;
+  text-align: center !important;
   max-width: 100%;
   margin-bottom: 20px;
   background-color: transparent;
@@ -143,7 +130,18 @@ blockquote {
 }
 
 @media screen {
-
+  a:link {
+    text-decoration: none;
+  }
+  a:visited {
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  a:active {
+    text-decoration: underline;
+  }
   .slide {
     top: 0;
     bottom: 0;
@@ -153,11 +151,9 @@ blockquote {
     visibility: hidden;
     overflow-x: hidden;
   }
-
   .slide .responsiveIframe {
     display: none;
   }
-
   .slide .content {
     min-height: calc(100% - 48px);
     text-align: center;
@@ -172,6 +168,7 @@ blockquote {
   }
   .slide footer {
     /*semi hidden the footer, user have to scroll down for instructions*/
+
     position: absolute;
     width: 100%;
     text-align: center;
@@ -195,18 +192,15 @@ blockquote {
     /*-moz-transition: left 0.5s ease;*/
     /*-webkit-transition: left 0.5s ease;*/
   }
-
-  .slide.current .responsiveIframe{
+  .slide.current .responsiveIframe {
     display: inline-block;
   }
-
   .slide.previous {
     left: -100%;
   }
   .slide.current {
     left: 0;
   }
-
   .slide.next {
     left: 100%;
   }
@@ -237,7 +231,6 @@ blockquote {
   body {
     font-size: 180%;
   }
-
   .slide .content {
     max-width: 82%;
   }
@@ -299,7 +292,7 @@ blockquote {
     font-size: 250%;
     font-weight: bold;
     width: 80%;
-    margin:auto;
+    margin: auto;
     border-bottom: none;
   }
   [data-layout="title-subtitle"] h1 {
@@ -343,7 +336,7 @@ blockquote {
   .slide pre {
     width: 80vw;
   }
-  .slideNo{
+  .slideNo {
     display: none;
   }
   .print-only {
