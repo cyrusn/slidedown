@@ -39,17 +39,12 @@ code {
   text-align: left;
 }
 
-.content>ul,
-.content>ol {
-  max-width: 80%
-}
-
 ol,
 ul {
   margin: 0.5em 1em;
   display: inline-block;
   text-align: left;
-  padding-left: 0.5em;
+  padding-left: 1em;
 }
 
 li {
@@ -59,8 +54,8 @@ li {
 
 li ul,
 li ol {
-  display: block;
   padding-left: 0;
+  display: block;
   text-align: left;
 }
 
@@ -271,11 +266,12 @@ blockquote {
   page-break-inside: avoid;
 }
 /* Center images on their own line (<p><img /></p>) */
-
-.slide p > img:first-child:last-child {
+.slide p > img:first-child:last-child,
+.slide p > a > img:first-child:last-child {
   display: block;
   margin: auto;
 }
+
 /* Yeah, I like Bootstrap's code formatting, OK? */
 
 .slide li code,
