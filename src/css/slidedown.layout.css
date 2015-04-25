@@ -152,7 +152,8 @@ blockquote {
     overflow-x: hidden;
   }
   .slide .responsiveIframe {
-    display: none;
+    /*display: none;*/
+    /*visibility: hidden;*/
   }
   .slide .content {
     min-height: calc(100% - 48px);
@@ -193,7 +194,8 @@ blockquote {
     /*-webkit-transition: left 0.5s ease;*/
   }
   .slide.current .responsiveIframe {
-    display: inline-block;
+    /*visibility: visible;*/
+    display: inline-block !important;
   }
   .slide.previous {
     left: -100%;

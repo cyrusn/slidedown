@@ -126,9 +126,8 @@ Slidedown.prototype = {
       mermaid.init();
       focusTargetSlide();
       MathJax.Hub.Typeset();
-      responsiveIframe();
       setMermaidSvgViewBox();
-
+      responsiveIframe();
       window.addEventListener('hashchange', focusTargetSlide);
     });
 
@@ -475,6 +474,19 @@ function responsiveIframe() {
     var ratio = iframe.height / iframe.width;
     iframe.width = Math.floor(width) + "px";
     iframe.height = Math.floor(width * ratio) + "px";
+    whenReady(function(){
+      // hide all iframes when finish loading
+      hideAllIframes();
+    });
+  });
+}
+
+function hideAllIframes(){
+  var iframes = document.getElementsByClassName('responsiveIframe');
+  if (!iframes.length) return;
+
+  forEach(iframes, function(iframe) {
+    iframe.style.display = "none";
   });
 }
 

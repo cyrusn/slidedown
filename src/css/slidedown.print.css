@@ -27,6 +27,9 @@
     text-align: left !important;
   }
 
+  iframe {
+    display: inline-block !important;
+  }
   .screen-only,
   .screen-only * {
     display: none !important;
