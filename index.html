@@ -3,7 +3,8 @@
 
 <head>
   <title>Slidedown</title>
-  <meta name="viewport" content="width=device-width, user-scalable=no" charset="UTF-8" />
+  <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Dark Theme Combo -->
   <!-- <link rel="stylesheet" type="text/css" href="css/theme/dark-theme.css" media="screen" /> -->
@@ -13,16 +14,18 @@
   <link rel="stylesheet" type="text/css" href="css/theme/light-theme.css" media="screen" />
   <link rel="stylesheet" type="text/css" href="css/hljs/monokai_sublime.css" media="screen"/>
 
-  <!-- Load src for plugins -->
+  <!-- Load plugins -->
   <link rel="stylesheet" type="text/css" href="lib/octicons/octicons/octicons.css">
   <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
   <script type="text/javascript" src="lib/hammer.js"></script>
   <script type="text/javascript" src="lib/mermaid.slim.min.js"></script>
-  <script type="text/javascript" src="config/mermaid_config.js"></script>
 
   <!-- Load SlideDown JS and CSS -->
   <link rel="stylesheet" type="text/css" href="build/slidedown.build.css" />
   <script type="text/javascript" src="build/slidedown.build.js"></script>
+
+  <!-- Configuration for MermaidJS -->
+  <script type="text/javascript" src="config/mermaid_config.js"></script>
 
   <!-- Configuration for MathJax-->
   <script type="text/x-mathjax-config">
@@ -40,24 +43,27 @@
   <!-- Configuration of SlideDown -->
   <script type="text/javascript">
     var queryString = Slidedown.parseQuery();
+    var validateQueryFile = new RegExp(".md$|.markdown$|.txt$", 'i');
+    var mdSource;
 
-    // you can replace `index.md` to dropbox share file.
-    // replace `www.dropbox.com` to `dl.dropboxusercontent.com` and delete `?dl=0`
-    // e.g. https://dl.dropboxusercontent.com/s/wqudvpda2pd2ybt/index.md
-    var mdSource = queryString.src || 'index.md';
-
-    // use dropbox share link
-    // dropbox link: https://www.dropbox.com/s/wqudvpda2pd2ybt/readme.md?dl=0
-    // example: http://localhost:8080?db=s/wqudvpda2pd2ybt/readme.md
-
-    // or your dropbox public folder id
-    var validateDropbox = new RegExp(".md$|.markdown$", 'i');
-
-    if (validateDropbox.test(queryString.db) ){
-      mdSource = "https://dl.dropboxusercontent.com/" + queryString.db;
+    switch (true) {
+      case validateQueryFile.test(queryString.src):
+        mdSource = queryString.src;
+        break;
+      case validateQueryFile.test(queryString.db):
+        // use dropbox share link
+        // dropbox link: https://www.dropbox.com/s/wqudvpda2pd2ybt/readme.md?dl=0
+        // example: http://localhost:8080?db=s/wqudvpda2pd2ybt/readme.md
+        mdSource = "https://dl.dropboxusercontent.com/" + queryString.db;
+        break;
+      default:
+        // you can replace `index.md` to dropbox share file.
+        // replace `www.dropbox.com` to `dl.dropboxusercontent.com` and delete `?dl=0`
+        // e.g. https://dl.dropboxusercontent.com/s/wqudvpda2pd2ybt/index.md
+        mdSource = 'index.md';
     }
 
-    console.log("Source: ", mdSource);
+    console.log("Source: %s", mdSource);
     Slidedown.fromXHR(mdSource).to('#slides');
   </script>
 </head>
