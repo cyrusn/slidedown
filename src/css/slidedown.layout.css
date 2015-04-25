@@ -41,14 +41,21 @@ code {
 
 ol,
 ul {
-  margin: 0 1%;
+  margin: 0.5em 1em;
   display: inline-block;
   text-align: left;
+  padding-left: 0.5em;
+}
+
+li {
+  margin: 0.5em 0;
+  padding-left: 0.5em;
 }
 
 li ul,
 li ol {
   display: block;
+  padding-left: 0;
   text-align: left;
 }
 
@@ -68,7 +75,7 @@ li ol {
 }
 
 table {
-  margin: auto;
+  margin: 0 5%;
   text-align: center !important;
   max-width: 100%;
   margin-bottom: 20px;
@@ -107,12 +114,6 @@ img {
   background-color: #fff;
   border: 1px solid #ddd;
   border-radius: 4px;
-}
-
-li {
-  margin: 0.5em 0;
-  padding-right: 0.5em;
-  padding-left: 0.5em;
 }
 
 a {

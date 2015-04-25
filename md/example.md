@@ -34,10 +34,10 @@ Use the links below to learn several syntax, the most basic syntax you have to l
 -----
 # Styling text
 
-- *Italic*
-- **Bold**
-- ***Bold and Italic***
-- ~~Delete~~
+1. *Italic*
+1. **Bold**
+1. ***Bold and Italic***
+1. ~~Delete~~
 
 ### markdown syntax
 ``` md
