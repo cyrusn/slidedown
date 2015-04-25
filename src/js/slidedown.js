@@ -507,7 +507,7 @@ CustomRenderer.prototype = new marked.Renderer();
 
 CustomRenderer.prototype.code = function(code, lang) {
   if (!lang) {
-    return '<pre><code class="hljs">' + code + '</code></pre>';
+    return '<pre class="hljs"><code>' + code + '</code></pre>';
     // return marked.Renderer.prototype.code.call(this, code, lang);
   }
 

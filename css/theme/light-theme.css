@@ -13,9 +13,11 @@ strong {
   color: #666666;
 }
 
-.slide h1,
-.slide h2,
-.slide h3 {
+.slide h1 {
+  color: #4A4A4A;
+}
+
+.slide h2 {
   color: #4A4A4A;
 }
 

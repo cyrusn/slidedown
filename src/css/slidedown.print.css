@@ -27,8 +27,13 @@
     text-align: left !important;
   }
 
+  pre {
+    border: 1px solid #888;
+  }
+
   iframe {
-    display: inline-block !important;
+    margin: 5% auto;
+    display: block !important;
   }
   .screen-only,
   .screen-only * {

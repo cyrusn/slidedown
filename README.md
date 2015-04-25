@@ -37,7 +37,7 @@ http://localhost:8000/?src=path/to/file.md
 http://localhost:8000/?src=http://site.com/path/to/file.md
 ```
 ***
-# how to use it - 2
+# How to use it - 2
 ## Use Dropbox share link
 
 if you got a share link of a markdown file like below

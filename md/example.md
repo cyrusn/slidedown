@@ -79,8 +79,14 @@ To see what else you can do with [Markdown][basic]
 
 -----
 # Image
+you can also make link to your image
+``` md
+[![image](link/to/image.jpg)](link/to/page.html)
 
-![image](http://2.bp.blogspot.com/-dxJbW0CG8Zs/TmkoMA5-cPI/AAAAAAAAAqw/fQpsz9GpFdo/s1600/voyage-dans-la-lune-1902-02-g.jpg)
+```
+
+![image][image1]
+
 
 -----
 # Table
@@ -132,20 +138,14 @@ Excepteur sint ~~occaecat~~ cupidatat nonproident, sunt in culpa qui officia des
 # YouTube
 
 
-<div class="screen-only">
-    <iframe width="560" height="315" src="https://www.youtube.com/embed/4O9o4CKTGzQ" frameborder="0" allowfullscreen></iframe>
-</div>
+<div class="screen-only"><iframe width="560" height="315" src="https://www.youtube.com/embed/4O9o4CKTGzQ" frameborder="0" allowfullscreen></iframe></div>
 
-<div class="print-only">
-    www.youtube.com/embed/4O9o4CKTGzQ
-</div>
+<div class="print-only">www.youtube.com/embed/4O9o4CKTGzQ</div>
 
 -----
 # [TimelineJS][timelinejs]
 
-<div class="screen-only">
-    <iframe src='http://cdn.knightlab.com/libs/timeline/latest/embed/index.html?source=0Agl_Dv6iEbDadHdKcHlHcTB5bzhvbF9iTWwyMmJHdkE&font=Bevan-PotanoSans&maptype=toner&lang=en&height=650' width='960' height='650' frameborder='0'></iframe>
-</div>
+<div class="screen-only"><iframe src='http://cdn.knightlab.com/libs/timeline/latest/embed/index.html?source=0Agl_Dv6iEbDadHdKcHlHcTB5bzhvbF9iTWwyMmJHdkE&font=Bevan-PotanoSans&maptype=toner&lang=en&height=650' width='960' height='650' frameborder='0'></iframe></div>
 
 -----
 
@@ -326,3 +326,4 @@ gantt
 [sequence]: http://knsv.github.io/mermaid/sequenceDiagram.html
 [gantt]: http://knsv.github.io/mermaid/gantt.html
 [editor]: http://knsv.github.io/mermaid/live_editor/
+[image1]:http://2.bp.blogspot.com/-dxJbW0CG8Zs/TmkoMA5-cPI/AAAAAAAAAqw/fQpsz9GpFdo/s1600/voyage-dans-la-lune-1902-02-g.jpg

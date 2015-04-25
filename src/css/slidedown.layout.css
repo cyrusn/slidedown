@@ -75,11 +75,15 @@ li ol {
 }
 
 table {
-  margin: 0 5%;
+  margin: 0 auto;
   text-align: center !important;
   max-width: 100%;
-  margin-bottom: 20px;
   background-color: transparent;
+}
+
+h1 + table,
+h2 + table{
+  margin: 5% auto;
 }
 
 tbody > tr > th,
@@ -159,11 +163,12 @@ blockquote {
   .slide .content {
     min-height: calc(100% - 48px);
     text-align: center;
-    width: fit-content;
-    width: intrinsic;
+    /*width: fit-content;*/
+    /*width: intrinsic;*/
     max-width: 100%;
+    width: 80vw;
     margin: auto;
-    padding-top: 48px;
+    padding-top: 15vh;
     color: #555555;
     overflow-x: hidden;
     overflow-y: auto;
@@ -196,8 +201,8 @@ blockquote {
   }
   .slide.current .responsiveIframe {
     /*visibility: visible;*/
-
-    display: inline-block !important;
+    margin: 5% auto;
+    display: block !important;
   }
   .slide.previous {
     left: -100%;
@@ -213,6 +218,9 @@ blockquote {
 @media screen and (max-width: 767px) {
   body {
     font-size: 90% !important;
+  }
+  .slide .content {
+    width: 100vw;
   }
   .slide footer {
     display: none !important;
@@ -235,9 +243,6 @@ blockquote {
   body {
     font-size: 180%;
   }
-  .slide .content {
-    max-width: 82%;
-  }
 }
 
 .slide h1 {
@@ -246,23 +251,25 @@ blockquote {
 
 .slide h1,
 .slide h2 {
-  margin-left: 5px;
-  margin-right: 5px;
+  margin: 2% auto;
   text-align: center;
 }
 
 .slide pre {
   text-align: left;
-  margin: 1em auto;
-  padding: 12px;
+  margin: 0.5em 5%;
+  /*padding: 12px;*/
+  min-width: 80%;
+  padding: 0.5em;
   white-space: pre-wrap;
   border-radius: 4px;
 }
 
 .slide blockquote {
-  border-left: 6px solid #888;
-  padding-left: 12px;
-  border: 1px solid #999;
+  text-align: left;
+  margin: 0.5em 5%;
+  /*padding-left: 12px;*/
+  border-left: 12px solid #888;
   page-break-inside: avoid;
 }
 /* Center images on their own line (<p><img /></p>) */
@@ -338,9 +345,6 @@ blockquote {
 }
 
 @media screen {
-  .slide pre {
-    width: 80vw;
-  }
   .slideNo {
     display: none;
   }
