@@ -128,8 +128,8 @@ Slidedown.prototype = {
       MathJax.Hub.Typeset();
       setMermaidSvgViewBox();
       responsiveIframe();
+      hideAllIframe();
       window.addEventListener('hashchange', focusTargetSlide);
-
 
       ['orientationchange', 'resize'].forEach(function(event){
         window.addEventListener(event, function(){
@@ -137,7 +137,6 @@ Slidedown.prototype = {
           responsiveIframe();
         });
       });
-
     });
 
     return slidedown;
@@ -484,30 +483,42 @@ function setMermaidSvgViewBox() {
   });
 }
 
-
 function responsiveIframe() {
   var iframes = document.getElementsByClassName('responsiveIframe');
   if (!iframes.length) return;
   forEach(iframes, function(iframe) {
-    var width = Math.min(window.innerWidth * 0.8, iframe.width);
-    var ratio = iframe.height / iframe.width;
-    iframe.width = Math.floor(width) + "px";
-    iframe.height = Math.floor(width * ratio) + "px";
-    whenReady(function(){
-      // hide all iframes when finish loading
-      hideAllIframes();
+
+    var newWidth = Math.min(window.innerWidth * 0.8, iframe.width);
+    var currentHeight = iframe.height ? iframe.height : iframe.offsetHeight;
+    var currentWidth = iframe.width ? iframe.width : iframe.offsetWidth;
+    var ratio = currentHeight / currentWidth;
+    iframe.style.width = Math.floor(newWidth) + "px";
+
+    var keepHeightRegExp = new RegExp(window.keepHeightIframeLink.join('|'));
+    switch(true){
+      case keepHeightRegExp.test(iframe.src):
+        // console.log("keep height", iframe.src);
+        // empty for keep height
+        break;
+      default:
+        // console.log("change height", iframe.src);
+        iframe.style.height = Math.floor(newWidth * ratio) + "px";
+    }
+
+  });
+}
+
+function hideAllIframe() {
+  var iframes = document.getElementsByClassName('responsiveIframe');
+  forEach(iframes, function(iframe){
+    // hide iframe when finish loading
+    whenReady(function (){
+      iframe.style.display = "none";
     });
   });
 }
 
-function hideAllIframes(){
-  var iframes = document.getElementsByClassName('responsiveIframe');
-  if (!iframes.length) return;
 
-  forEach(iframes, function(iframe) {
-    iframe.style.display = "none";
-  });
-}
 
 function changeTitle() {
   var firstH1 = document.getElementsByTagName("h1")[0];

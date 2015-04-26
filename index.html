@@ -25,7 +25,8 @@
   <script type="text/javascript" src="build/slidedown.build.js"></script>
 
   <!-- Configuration for MermaidJS -->
-  <script type="text/javascript" src="config/mermaid_config.js"></script>
+  <script type="text/javascript" src="config/mermaid_config.js">
+  </script>
 
   <!-- Configuration for MathJax-->
   <script type="text/x-mathjax-config">
@@ -42,6 +43,13 @@
 
   <!-- Configuration of SlideDown -->
   <script type="text/javascript">
+
+    // All iframes are responsive,
+    // if you wannt to keep the iframe height unchanged,
+    // add the pathname of the iframe below in RegExp form;
+    // knightlab for keeping TimelineJS height unchanged;
+    window.keepHeightIframeLink = ['cdn.knightlab.com'];
+
     var queryString = Slidedown.parseQuery();
     var validateQueryFile = new RegExp(".md$|.markdown$|.txt$", 'i');
     var mdSource;
