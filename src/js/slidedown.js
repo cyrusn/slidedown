@@ -129,6 +129,14 @@ Slidedown.prototype = {
       setMermaidSvgViewBox();
       responsiveIframe();
       window.addEventListener('hashchange', focusTargetSlide);
+
+
+      ['orientationchange', 'resize'].forEach(function(event){
+        window.addEventListener(event, function(){
+          responsiveMermaid();
+        });
+      });
+
     });
 
     return slidedown;
@@ -432,10 +440,20 @@ function goToSlide(no) {
   };
 }
 
+function responsiveMermaid(){
+  var svgs = document.querySelectorAll('.mermaid>svg');
+  var width = window.innerWidth;
+
+  forEach(svgs, function(svg){
+    var viewBox = svg.viewBox.baseVal;
+    svg.setAttribute('width', width * 0.8 + 'px');
+  });
+}
+
 function setMermaidSvgViewBox() {
   // set width, height, and viewBox for responsive view
   var svgs = document.querySelectorAll('.mermaid>svg');
-  var width = window.innerWidth * 0.8;
+  var width = window.innerWidth;
 
   if (!svgs.length) return;
 
@@ -452,13 +470,13 @@ function setMermaidSvgViewBox() {
           var height = svg.style.height.replace('px','');
           viewBox.width = 1024;
           viewBox.height = height;
-          svg.setAttribute('width', Math.min(width, viewBox.width) + 'px');
+          svg.setAttribute('width', width * 0.8 + 'px');
           svg.style.height = '100%';
           parentNode.style.width = "auto";
           break;
         default:
           var ratio = viewBox.height / viewBox.width;
-          svg.setAttribute('width', Math.min(width, viewBox.width) + 'px');
+          svg.setAttribute('width', width * 0.8 + 'px');
           svg.setAttribute('height', '100%');
           break;
       }
