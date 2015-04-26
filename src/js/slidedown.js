@@ -446,7 +446,7 @@ function responsiveMermaid(){
 
   forEach(svgs, function(svg){
     var viewBox = svg.viewBox.baseVal;
-    svg.setAttribute('width', width * 0.8 + 'px');
+    svg.setAttribute('width', Math.min(width * 0.8, viewBox.width) + 'px');
   });
 }
 
@@ -476,7 +476,7 @@ function setMermaidSvgViewBox() {
           break;
         default:
           var ratio = viewBox.height / viewBox.width;
-          svg.setAttribute('width', width * 0.8 + 'px');
+          svg.setAttribute('width', Math.min(width * 0.8, viewBox.width) + 'px');
           svg.setAttribute('height', '100%');
           break;
       }
