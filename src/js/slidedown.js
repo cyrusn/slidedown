@@ -497,11 +497,9 @@ function responsiveIframe() {
     var keepHeightRegExp = new RegExp(window.keepHeightIframeLink.join('|'));
     switch(true){
       case keepHeightRegExp.test(iframe.src):
-        // console.log("keep height", iframe.src);
         // empty for keep height
         break;
       default:
-        // console.log("change height", iframe.src);
         iframe.style.height = Math.floor(newWidth * ratio) + "px";
     }
 
