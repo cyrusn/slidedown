@@ -502,7 +502,6 @@ function responsiveIframe() {
       default:
         iframe.style.height = Math.floor(newWidth * ratio) + "px";
     }
-
   });
 }
 
@@ -512,7 +511,6 @@ function hideAllIframe() {
     // hide iframe when finish loading
     // console.log(iframe.readyState);
     iframe.addEventListener('load', function(){
-      console.log("finish loading");
       iframe.style.display = "none";
     });
   });
