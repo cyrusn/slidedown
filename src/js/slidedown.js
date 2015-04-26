@@ -510,13 +510,13 @@ function hideAllIframe() {
   var iframes = document.getElementsByClassName('responsiveIframe');
   forEach(iframes, function(iframe){
     // hide iframe when finish loading
-    whenReady(function (){
+    // console.log(iframe.readyState);
+    iframe.addEventListener('load', function(){
+      console.log("finish loading");
       iframe.style.display = "none";
     });
   });
 }
-
-
 
 function changeTitle() {
   var firstH1 = document.getElementsByTagName("h1")[0];
