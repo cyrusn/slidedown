@@ -134,6 +134,7 @@ Slidedown.prototype = {
       ['orientationchange', 'resize'].forEach(function(event){
         window.addEventListener(event, function(){
           responsiveMermaid();
+          responsiveIframe();
         });
       });
 
