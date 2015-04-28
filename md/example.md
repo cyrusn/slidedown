@@ -306,34 +306,41 @@ gantt
 ----
 # PlantUML
 
-we also support [PlantUML][plantuml], but can only be parsed when you connected to internet.
+We also support [PlantUML][plantuml], but can only be parsed when you connected to internet.
 
 ``` plantuml
-title ApL Schedule
 start
-:introduction talk of ApL;
-
-if (interest) then (yes)
-  :go to taster programme;
-    if (went) then (yes)
-      :interview training;
-      if (success) then (yes)
-        :subject counselling;
-        note right
-          follow up (subject teacher involved)
-          e.g. counselling to drop subject
-        end note
-        :application procedure;
-        end
-      else (no)
-      endif
-    else (no)
+:ClickServlet.handleRequest();
+:new page;
+if (Page.onSecurityCheck) then (true)
+  :Page.onInit();
+  if (isForward?) then (no)
+    :Process controls;
+    if (continue processing?) then (no)
+      stop
     endif
-else (no)
+
+    if (isPost?) then (yes)
+      :Page.onPost();
+    else (no)
+      :Page.onGet();
+    endif
+    :Page.onRender();
+  endif
+else (false)
 endif
-:any other needs\ne.g. ncs, sens ...;
-:follow up;
-end
+
+if (do redirect?) then (yes)
+  :redirect process;
+else
+  if (do forward?) then (yes)
+    :Forward request;
+  else (no)
+    :Render page template;
+  endif
+endif
+
+stop
 ```
 
 ----
