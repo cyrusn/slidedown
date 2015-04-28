@@ -136,7 +136,6 @@ Slidedown.prototype = {
         window.addEventListener(event, function(){
           responsiveMermaid();
           responsiveIframe();
-          plantuml_runonce();
         });
       });
     });
@@ -496,7 +495,7 @@ function responsiveIframe() {
     var ratio = currentHeight / currentWidth;
     iframe.style.width = Math.floor(newWidth) + "px";
 
-    var keepHeightRegExp = new RegExp(window.keepHeightIframeLink.join('|'));
+    var keepHeightRegExp = new RegExp(window.keepHeightIframeLink ? window.keepHeightIframeLink.join('|') : 'cdn.knightlab.com');
     switch(true){
       case keepHeightRegExp.test(iframe.src):
         // empty for keep height
@@ -524,7 +523,6 @@ function changeTitle() {
   return title;
 }
 
-
 function CustomRenderer() {}
 
 CustomRenderer.prototype = new marked.Renderer();
@@ -534,11 +532,11 @@ CustomRenderer.prototype = new marked.Renderer();
 // };
 
 CustomRenderer.prototype.code = function(code, lang) {
+
   if (!lang) {
     return '<pre class="hljs"><code>' + code + '</code></pre>';
     // return marked.Renderer.prototype.code.call(this, code, lang);
   }
-
   switch (lang) {
     case 'mermaid':
       if (code.match(/^\s*sequenceDiagram/)) {
@@ -550,8 +548,8 @@ CustomRenderer.prototype.code = function(code, lang) {
       }
     break;
     case 'plantuml':
-      if(!navigator.onLine) return "<blockquote><p>Image of PlantUML <strong>cannot</strong> be loaded, image can only be loaded when connected to <strong>internet</strong></p></blockquote>"
-      return '<img class="plantuml" src="' + plantuml.compress(code) + '"/>';
+      if(!navigator.onLine) return "<blockquote><p>Image of PlantUML <strong>cannot</strong> be loaded, image can only be loaded when connected to <strong>internet</strong></p></blockquote>";
+      return '<img class="plantuml" alt="PlantUML Graph" src="' + plantuml.compress(code) + '"/>';
     default:
     var html = hljs.highlight(lang, code).value;
     return '<pre class="hljs ' + lang + '">' + html + '</pre>';
