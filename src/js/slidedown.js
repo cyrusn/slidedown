@@ -1,5 +1,6 @@
 var marked = require('marked'),
-  hljs = require('highlight.js');
+  hljs = require('highlight.js'),
+  plantuml = require('./plantuml.js');
 
 function Slidedown() {
   this.target = 'body';
@@ -135,6 +136,7 @@ Slidedown.prototype = {
         window.addEventListener(event, function(){
           responsiveMermaid();
           responsiveIframe();
+          plantuml_runonce();
         });
       });
     });
@@ -509,7 +511,6 @@ function hideAllIframe() {
   var iframes = document.getElementsByClassName('responsiveIframe');
   forEach(iframes, function(iframe){
     // hide iframe when finish loading
-    // console.log(iframe.readyState);
     iframe.addEventListener('load', function(){
       iframe.style.display = "none";
     });
@@ -522,6 +523,7 @@ function changeTitle() {
   document.title = title;
   return title;
 }
+
 
 function CustomRenderer() {}
 
@@ -537,18 +539,24 @@ CustomRenderer.prototype.code = function(code, lang) {
     // return marked.Renderer.prototype.code.call(this, code, lang);
   }
 
-  if (lang == 'mermaid') {
-    if (code.match(/^\s*sequenceDiagram/)) {
-      return '<div class="mermaid sequenceDiagram">' + code + '</div>';
-    } else if (code.match(/^\s*graph/)) {
-      return '<div class="mermaid graph">' + code + '</div>';
-    } else if (code.match(/^\s*gantt/)) {
-      return '<div class="mermaid gantt">' + code + '</div>';
-    }
+  switch (lang) {
+    case 'mermaid':
+      if (code.match(/^\s*sequenceDiagram/)) {
+        return '<div class="mermaid sequenceDiagram">' + code + '</div>';
+      } else if (code.match(/^\s*graph/)) {
+        return '<div class="mermaid graph">' + code + '</div>';
+      } else if (code.match(/^\s*gantt/)) {
+        return '<div class="mermaid gantt">' + code + '</div>';
+      }
+    break;
+    case 'plantuml':
+      if(!navigator.onLine) return "<blockquote><p>Image of PlantUML <strong>cannot</strong> be loaded, image can only be loaded when connected to <strong>internet</strong></p></blockquote>"
+      return '<img class="plantuml" src="' + plantuml.compress(code) + '"/>';
+    default:
+    var html = hljs.highlight(lang, code).value;
+    return '<pre class="hljs ' + lang + '">' + html + '</pre>';
   }
 
-  var html = hljs.highlight(lang, code).value;
-  return '<pre class="hljs ' + lang + '">' + html + '</pre>';
 };
 
 function staticize(constructor, properties) {

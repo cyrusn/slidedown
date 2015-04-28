@@ -304,6 +304,39 @@ gantt
 [Learn][gantt] and [try][editor] Mermaid.JS for gantt graph.
 
 ----
+# PlantUML
+
+we also support [PlantUML][plantuml], but can only be parsed when you connected to internet.
+
+``` plantuml
+title ApL Schedule
+start
+:introduction talk of ApL;
+
+if (interest) then (yes)
+  :go to taster programme;
+    if (went) then (yes)
+      :interview training;
+      if (success) then (yes)
+        :subject counselling;
+        note right
+          follow up (subject teacher involved)
+          e.g. counselling to drop subject
+        end note
+        :application procedure;
+        end
+      else (no)
+      endif
+    else (no)
+    endif
+else (no)
+endif
+:any other needs\ne.g. ncs, sens ...;
+:follow up;
+end
+```
+
+----
 # Furthermore
 - Print this presenation
 - View it on mobile
@@ -326,4 +359,5 @@ gantt
 [sequence]: http://knsv.github.io/mermaid/sequenceDiagram.html
 [gantt]: http://knsv.github.io/mermaid/gantt.html
 [editor]: http://knsv.github.io/mermaid/live_editor/
-[image1]:http://2.bp.blogspot.com/-dxJbW0CG8Zs/TmkoMA5-cPI/AAAAAAAAAqw/fQpsz9GpFdo/s1600/voyage-dans-la-lune-1902-02-g.jpg
+[image1]: http://2.bp.blogspot.com/-dxJbW0CG8Zs/TmkoMA5-cPI/AAAAAAAAAqw/fQpsz9GpFdo/s1600/voyage-dans-la-lune-1902-02-g.jpg
+[plantuml]: http://plantuml.sourceforge.net/index.html

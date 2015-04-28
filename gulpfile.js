@@ -5,10 +5,10 @@ var rename     = require('gulp-rename');
 var concatCss  = require('gulp-concat-css');
 var minifyCss = require('gulp-minify-css');
 
-var slidedown = "./src/js/slidedown.js";
+var src = "./src/js/*.js";
 
 gulp.task('js', function() {
-  return gulp.src(slidedown)
+  return gulp.src(src)
     .pipe(browserify())
     .pipe(minify())
     .pipe(rename('slidedown.build.js'))
@@ -23,6 +23,6 @@ gulp.task('css', function () {
 });
 
 gulp.task('watch', function() {
-  gulp.watch(slidedown, ['js']);
+  gulp.watch(src, ['js']);
   gulp.watch('src/css/*.css', ['css']);
 });
