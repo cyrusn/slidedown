@@ -20,6 +20,7 @@
   "homepage": "https://github.com/dtao/slidedown",
   "dependencies": {
     "highlight.js": "^8.1.0",
+    "markdown-toc": "^0.11.3",
     "marked": "^0.3.3",
     "mermaid": "^0.4.0"
   },

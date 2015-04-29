@@ -70,7 +70,7 @@ Slidedown.prototype = {
         element.id = 'slide-' + number;
         element.className = 'slide';
 
-        var addSlideNumberToSlide = "<div class='slideNo'><span>slide " + number + "</span><iv>";
+        var addSlideNumberToSlide = "<div class='slideNo'><span>slide " + number + "</span></div>";
 
         var content = document.createElement('DIV');
         content.className = 'content';
@@ -100,13 +100,20 @@ Slidedown.prototype = {
 
       var slides = document.getElementsByClassName('slide');
 
-      // more key feature
+      // more key feature:
       // using `home` key to go to first page
       handleKey(36, goToSlide(1));
+
       // using `end` key to go to last page
       handleKey(35, goToSlide(slides.length - 1));
 
-      // Using `h` key to go to root page
+      // using `t` to go to toc page;
+      var tocElement = document.getElementById('toc');
+      if(tocElement){
+        handleKey(84, goToSlide(getElementSlideNo(tocElement)));
+      }
+
+      // using `h` key to go to root page
       handleKey(72, function() {
         location.assign(location.pathname);
       });
@@ -122,21 +129,29 @@ Slidedown.prototype = {
         }(Hammer));
       }
 
-      // change title by first h1
+      // change title by first h1 of document
       changeTitle();
+
       mermaid.init();
-      focusTargetSlide();
-      MathJax.Hub.Typeset();
       setMermaidSvgViewBox();
       responsiveIframe();
+      focusTargetSlide();
+      MathJax.Hub.Typeset();
+      createTOC();
       hideAllIframe();
-      window.addEventListener('hashchange', focusTargetSlide);
+
+      window.addEventListener('hashchange', function(){
+        focusTargetSlide();
+        // Correct for any rogue dragging that occurred.
+        setTimeout(function() {
+          window.scrollTo(0, window.scrollY);
+        }, 0);
+      });
 
       ['orientationchange', 'resize'].forEach(function(event){
         window.addEventListener(event, function(){
           responsiveMermaid();
           responsiveIframe();
-          plantuml_runonce();
         });
       });
     });
@@ -285,7 +300,8 @@ function addNavigationInstructions(element) {
     'Use left + right arrow keys',
     'Click on the left + right sides of the screen',
     'Use home/ end key to go to first/ last page',
-    'Use h key to go to root page'
+    'Use h key to go to root page',
+    'Use t key to go to Table of Content'
   ];
 
   forEach(options, function(option) {
@@ -430,14 +446,15 @@ function focusTargetSlide() {
   removeClass(previous, 'previous');
   removeClass(next, 'next');
   var targetSlide = document.querySelector(window.location.hash || '.slide:first-child');
+
   addClass(targetSlide, 'current');
   addClass(targetSlide.previousElementSibling, 'previous');
   addClass(targetSlide.nextElementSibling, 'next');
 }
 
-function goToSlide(no) {
+function goToSlide(slideNo) {
   return function() {
-    setSlideId('slide-' + no);
+    setSlideId('slide-' + slideNo);
     focusTargetSlide();
   };
 }
@@ -448,7 +465,15 @@ function responsiveMermaid(){
 
   forEach(svgs, function(svg){
     var viewBox = svg.viewBox.baseVal;
-    svg.setAttribute('width', Math.min(width * 0.8, viewBox.width) + 'px');
+    var parentNode = svg.parentNode;
+    switch (true) {
+        case /gantt/.test(parentNode.className):
+          svg.setAttribute('width', Math.min(width * 0.8, viewBox.width)  + 'px');
+          break;
+        default:
+          svg.setAttribute('width', Math.min(width, viewBox.width) * 0.8 + 'px');
+        break;
+    }
   });
 }
 
@@ -478,10 +503,10 @@ function setMermaidSvgViewBox() {
           break;
         default:
           var ratio = viewBox.height / viewBox.width;
-          svg.setAttribute('width', Math.min(width * 0.8, viewBox.width) + 'px');
+          svg.setAttribute('width', Math.min(width, viewBox.width) * 0.8 + 'px');
           svg.setAttribute('height', '100%');
-          break;
-      }
+        break;
+    }
   });
 }
 
@@ -496,7 +521,7 @@ function responsiveIframe() {
     var ratio = currentHeight / currentWidth;
     iframe.style.width = Math.floor(newWidth) + "px";
 
-    var keepHeightRegExp = new RegExp(window.keepHeightIframeLink.join('|'));
+    var keepHeightRegExp = new RegExp(window.keepHeightIframeLink ? window.keepHeightIframeLink.join('|') : 'cdn.knightlab.com');
     switch(true){
       case keepHeightRegExp.test(iframe.src):
         // empty for keep height
@@ -524,6 +549,34 @@ function changeTitle() {
   return title;
 }
 
+function getElementSlideNo (element) {
+  while (!(/slide/.test(element.className) || element===null)) {
+      element = element.parentNode;
+  }
+  return parseInt(element.id.substr(6));
+}
+
+function createTOC(){
+  var tocElement = document.getElementById('toc');
+  if (!tocElement) return ;
+  var headings = document.querySelectorAll("h1, h2");
+  var tocMarkdownString = "";
+
+  forEach(headings, function(heading){
+    switch (heading.tagName) {
+      case 'H1':
+        tocMarkdownString += '- [' + heading.textContent + '](#slide-' + getElementSlideNo(heading) +')\n';
+      break;
+      case 'H2':
+        tocMarkdownString += '\t+ [' + heading.textContent + '](#slide-' + getElementSlideNo(heading) +')\n';
+      break;
+      default:
+    }
+  });
+
+  tocElement.innerHTML = marked(tocMarkdownString);
+}
+
 
 function CustomRenderer() {}
 
@@ -534,11 +587,11 @@ CustomRenderer.prototype = new marked.Renderer();
 // };
 
 CustomRenderer.prototype.code = function(code, lang) {
+
   if (!lang) {
     return '<pre class="hljs"><code>' + code + '</code></pre>';
     // return marked.Renderer.prototype.code.call(this, code, lang);
   }
-
   switch (lang) {
     case 'mermaid':
       if (code.match(/^\s*sequenceDiagram/)) {
@@ -550,8 +603,8 @@ CustomRenderer.prototype.code = function(code, lang) {
       }
     break;
     case 'plantuml':
-      if(!navigator.onLine) return "<blockquote><p>Image of PlantUML <strong>cannot</strong> be loaded, image can only be loaded when connected to <strong>internet</strong></p></blockquote>"
-      return '<img class="plantuml" src="' + plantuml.compress(code) + '"/>';
+      if(!navigator.onLine) return "<blockquote><p>Image of PlantUML <strong>cannot</strong> be loaded, image can only be loaded when connected to <strong>internet</strong></p></blockquote>";
+      return '<img class="plantuml" alt="PlantUML Graph" src="' + plantuml.compress(code) + '"/>';
     default:
     var html = hljs.highlight(lang, code).value;
     return '<pre class="hljs ' + lang + '">' + html + '</pre>';

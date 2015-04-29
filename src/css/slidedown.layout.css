@@ -216,7 +216,7 @@ blockquote {
 
 @media screen and (max-width: 767px) {
   body {
-    font-size: 90% !important;
+    font-size: 100% !important;
   }
   .slide .content {
     width: 90vw;
@@ -234,13 +234,13 @@ blockquote {
 
 @media screen and (max-width: 1199px) {
   body {
-    font-size: 150%;
+    font-size: 140%;
   }
 }
 
 @media screen and (min-width: 1200px) {
   body {
-    font-size: 180%;
+    font-size: 160%;
   }
 }
 

@@ -2,6 +2,12 @@
 ## [See Orginal Markdown File](md/example.md)
 
 -----
+# Table of Content
+<!-- Add table of Content -->
+
+<div id='toc'></div>
+
+-----
 # Tutorial
 
 Use the links below to learn several syntax, the most basic syntax you have to learn is `markdown`, please reach the first two link for detail.
@@ -17,14 +23,22 @@ Use the links below to learn several syntax, the most basic syntax you have to l
     + [Mermaid Flowchart][flowchart]
     + [Mermaid Sequence][sequence]
     + [Mermaid Gantt][gantt]
+- [PlantUML][plantuml] for drawing graph by text
+    + [PlantUML Sequence][plantuml-sequence]
+    + [PlantUML Use Case][plantuml-usecase]
+    + [PlantUML Classes][plantuml-classes]
+    + [PlantUML Activity][plantuml-activity]
+    + [PlantUML Component][plantuml-component]
+    + [PlantUML State][plantuml-state]
+    + [PlantUML Object][plantuml-object]
 
 -----
 # Headings 1
 ## Headings 2
 
-    heading 1 - 2 will be aligned center,
-    heading 3 - 6 will be aligned to left
+    heading 1 - 2 will be aligned center and parsed to Table of Content.
 
+    heading 3 - 6 will be aligned to left
 
 ### Headings 3
 #### Headings 4
@@ -306,34 +320,41 @@ gantt
 ----
 # PlantUML
 
-we also support [PlantUML][plantuml], but can only be parsed when you connected to internet.
+We also support [PlantUML][plantuml], but can only be parsed when you connected to internet.
 
 ``` plantuml
-title ApL Schedule
 start
-:introduction talk of ApL;
-
-if (interest) then (yes)
-  :go to taster programme;
-    if (went) then (yes)
-      :interview training;
-      if (success) then (yes)
-        :subject counselling;
-        note right
-          follow up (subject teacher involved)
-          e.g. counselling to drop subject
-        end note
-        :application procedure;
-        end
-      else (no)
-      endif
-    else (no)
+:ClickServlet.handleRequest();
+:new page;
+if (Page.onSecurityCheck) then (true)
+  :Page.onInit();
+  if (isForward?) then (no)
+    :Process controls;
+    if (continue processing?) then (no)
+      stop
     endif
-else (no)
+
+    if (isPost?) then (yes)
+      :Page.onPost();
+    else (no)
+      :Page.onGet();
+    endif
+    :Page.onRender();
+  endif
+else (false)
 endif
-:any other needs\ne.g. ncs, sens ...;
-:follow up;
-end
+
+if (do redirect?) then (yes)
+  :redirect process;
+else
+  if (do forward?) then (yes)
+    :Forward request;
+  else (no)
+    :Render page template;
+  endif
+endif
+
+stop
 ```
 
 ----
@@ -361,3 +382,10 @@ end
 [editor]: http://knsv.github.io/mermaid/live_editor/
 [image1]: http://2.bp.blogspot.com/-dxJbW0CG8Zs/TmkoMA5-cPI/AAAAAAAAAqw/fQpsz9GpFdo/s1600/voyage-dans-la-lune-1902-02-g.jpg
 [plantuml]: http://plantuml.sourceforge.net/index.html
+[plantuml-sequence]:http://plantuml.sourceforge.net/sequence.html
+[plantuml-usecase]:http://plantuml.sourceforge.net/usecase.html
+[plantuml-classes]:http://plantuml.sourceforge.net/classes.html
+[plantuml-activity]:http://plantuml.sourceforge.net/activity2.html
+[plantuml-component]:http://plantuml.sourceforge.net/component.html
+[plantuml-state]:http://plantuml.sourceforge.net/state.html
+[plantuml-object]:http://plantuml.sourceforge.net/objects.html

@@ -2,6 +2,11 @@
 ## README
 
 ***
+<!-- Add table of Content -->
+# Table of Content
+<div id="toc"></div>
+
+***
 # Support Browser
 - Chrome (OSX, Window, Linux)
 - Safari (OSX)
@@ -13,6 +18,7 @@
 - Click on the `left` + `right` sides of the screen
 - Use `home`/ `end` key to go to first/ last page
 - Use `h` key to go to root page
+- Use `t` key to go to Table of Content
 
 ***
 # Markdown Syntax
@@ -52,7 +58,7 @@ http://localhost:8000/?db=s/wqudvpda2pd2ybt/readme.md
 
 ***
 # How to use it - 3
-## For Advance User
+### For Advance User
 
 ``` html
 <!-- Or if you have the Markdown in a string already -->
@@ -67,7 +73,7 @@ http://localhost:8000/?db=s/wqudvpda2pd2ybt/readme.md
 ```
 ***
 # How to use it - 4
-## For Advance User
+### For Advance User
 By default, slides will be dumped directly into the document's `<body>` element.
 You can change this:
 
