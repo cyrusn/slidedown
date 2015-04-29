@@ -70,7 +70,7 @@ Slidedown.prototype = {
         element.id = 'slide-' + number;
         element.className = 'slide';
 
-        var addSlideNumberToSlide = "<div class='slideNo'><span>slide " + number + "</span><iv>";
+        var addSlideNumberToSlide = "<div class='slideNo'><span>slide " + number + "</span></div>";
 
         var content = document.createElement('DIV');
         content.className = 'content';
@@ -130,6 +130,7 @@ Slidedown.prototype = {
       setMermaidSvgViewBox();
       responsiveIframe();
       hideAllIframe();
+      createTOC();
       window.addEventListener('hashchange', focusTargetSlide);
 
       ['orientationchange', 'resize'].forEach(function(event){
@@ -429,6 +430,12 @@ function focusTargetSlide() {
   removeClass(previous, 'previous');
   removeClass(next, 'next');
   var targetSlide = document.querySelector(window.location.hash || '.slide:first-child');
+
+  // for any hash value, it will add .current class to #slide
+  while (!(/slide/.test(targetSlide.className) || targetSlide === null)){
+    targetSlide = targetSlide.parentNode;
+  }
+
   addClass(targetSlide, 'current');
   addClass(targetSlide.previousElementSibling, 'previous');
   addClass(targetSlide.nextElementSibling, 'next');
@@ -530,6 +537,27 @@ function changeTitle() {
   document.title = title;
   return title;
 }
+
+
+
+function createTOC(){
+  var headings = document.querySelectorAll("h1, h2");
+  var tocMarkdownString = "";
+
+  forEach(headings, function(heading){
+    switch (heading.tagName) {
+      case 'H1':
+        tocMarkdownString += '- [' + heading.textContent + '](#' + heading.id +')\n';
+      break;
+      case 'H2':
+        tocMarkdownString += '\t+ [' + heading.textContent + '](#' + heading.id +')\n';
+      break;
+      default:
+    }
+  });
+  document.getElementById('toc').innerHTML = marked(tocMarkdownString);
+}
+
 
 function CustomRenderer() {}
 
