@@ -3,7 +3,7 @@
 
 ***
 <!-- Add table of Content -->
-
+# Table of Content
 <div id="toc"></div>
 
 ***
@@ -58,7 +58,7 @@ http://localhost:8000/?db=s/wqudvpda2pd2ybt/readme.md
 
 ***
 # How to use it - 3
-## For Advance User
+### For Advance User
 
 ``` html
 <!-- Or if you have the Markdown in a string already -->
@@ -73,7 +73,7 @@ http://localhost:8000/?db=s/wqudvpda2pd2ybt/readme.md
 ```
 ***
 # How to use it - 4
-## For Advance User
+### For Advance User
 By default, slides will be dumped directly into the document's `<body>` element.
 You can change this:
 

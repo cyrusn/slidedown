@@ -95,17 +95,15 @@ Slidedown.prototype = {
       // Attach left/right keyboard shortcuts
       handleKey(39, nextSlide);
       handleKey(37, prevSlide);
-
-
-
       handleClick('x > 90%', nextSlide);
       handleClick('x < 10%', prevSlide);
 
       var slides = document.getElementsByClassName('slide');
 
-      // more key feature
+      // more key feature:
       // using `home` key to go to first page
       handleKey(36, goToSlide(1));
+
       // using `end` key to go to last page
       handleKey(35, goToSlide(slides.length - 1));
 
@@ -115,7 +113,7 @@ Slidedown.prototype = {
         handleKey(84, goToSlide(getElementSlideNo(tocElement)));
       }
 
-      // Using `h` key to go to root page
+      // using `h` key to go to root page
       handleKey(72, function() {
         location.assign(location.pathname);
       });
@@ -131,17 +129,24 @@ Slidedown.prototype = {
         }(Hammer));
       }
 
-      // change title by first h1
+      // change title by first h1 of document
       changeTitle();
+
       mermaid.init();
-      focusTargetSlide();
-      MathJax.Hub.Typeset();
       setMermaidSvgViewBox();
       responsiveIframe();
-      hideAllIframe();
+      focusTargetSlide();
+      MathJax.Hub.Typeset();
       createTOC();
+      hideAllIframe();
 
-      window.addEventListener('hashchange', focusTargetSlide);
+      window.addEventListener('hashchange', function(){
+        focusTargetSlide();
+        // Correct for any rogue dragging that occurred.
+        setTimeout(function() {
+          window.scrollTo(0, window.scrollY);
+        }, 0);
+      });
 
       ['orientationchange', 'resize'].forEach(function(event){
         window.addEventListener(event, function(){
@@ -442,17 +447,14 @@ function focusTargetSlide() {
   removeClass(next, 'next');
   var targetSlide = document.querySelector(window.location.hash || '.slide:first-child');
 
-  // for any hash value, it will add .current class to #slide
-  targetSlide = document.getElementById('slide-'+getElementSlideNo(targetSlide));
-
   addClass(targetSlide, 'current');
   addClass(targetSlide.previousElementSibling, 'previous');
   addClass(targetSlide.nextElementSibling, 'next');
 }
 
-function goToSlide(no) {
+function goToSlide(slideNo) {
   return function() {
-    setSlideId('slide-' + no);
+    setSlideId('slide-' + slideNo);
     focusTargetSlide();
   };
 }
@@ -555,21 +557,24 @@ function getElementSlideNo (element) {
 }
 
 function createTOC(){
+  var tocElement = document.getElementById('toc');
+  if (!tocElement) return ;
   var headings = document.querySelectorAll("h1, h2");
-  var tocMarkdownString = "# Table of Content\n";
+  var tocMarkdownString = "";
 
   forEach(headings, function(heading){
     switch (heading.tagName) {
       case 'H1':
-        tocMarkdownString += '- [' + heading.textContent + '](#' + heading.id +')\n';
+        tocMarkdownString += '- [' + heading.textContent + '](#slide-' + getElementSlideNo(heading) +')\n';
       break;
       case 'H2':
-        tocMarkdownString += '\t+ [' + heading.textContent + '](#' + heading.id +')\n';
+        tocMarkdownString += '\t+ [' + heading.textContent + '](#slide-' + getElementSlideNo(heading) +')\n';
       break;
       default:
     }
   });
-  document.getElementById('toc').innerHTML = marked(tocMarkdownString);
+
+  tocElement.innerHTML = marked(tocMarkdownString);
 }
 
 

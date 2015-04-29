@@ -1,4 +1,5 @@
-# User Guide
+# SlideDown
+## User Guide
 
 - [ReadMe](?src=README.md)
 - [Example](?src=md/example.md)
