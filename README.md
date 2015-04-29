@@ -2,6 +2,11 @@
 ## README
 
 ***
+<!-- Add table of Content -->
+
+<div id="toc"></div>
+
+***
 # Support Browser
 - Chrome (OSX, Window, Linux)
 - Safari (OSX)
@@ -13,6 +18,7 @@
 - Click on the `left` + `right` sides of the screen
 - Use `home`/ `end` key to go to first/ last page
 - Use `h` key to go to root page
+- Use `t` key to go to Table of Content
 
 ***
 # Markdown Syntax

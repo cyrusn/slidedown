@@ -95,6 +95,9 @@ Slidedown.prototype = {
       // Attach left/right keyboard shortcuts
       handleKey(39, nextSlide);
       handleKey(37, prevSlide);
+
+
+
       handleClick('x > 90%', nextSlide);
       handleClick('x < 10%', prevSlide);
 
@@ -105,6 +108,12 @@ Slidedown.prototype = {
       handleKey(36, goToSlide(1));
       // using `end` key to go to last page
       handleKey(35, goToSlide(slides.length - 1));
+
+      // using `t` to go to toc page;
+      var tocElement = document.getElementById('toc');
+      if(tocElement){
+        handleKey(84, goToSlide(getElementSlideNo(tocElement)));
+      }
 
       // Using `h` key to go to root page
       handleKey(72, function() {
@@ -131,6 +140,7 @@ Slidedown.prototype = {
       responsiveIframe();
       hideAllIframe();
       createTOC();
+
       window.addEventListener('hashchange', focusTargetSlide);
 
       ['orientationchange', 'resize'].forEach(function(event){
@@ -285,7 +295,8 @@ function addNavigationInstructions(element) {
     'Use left + right arrow keys',
     'Click on the left + right sides of the screen',
     'Use home/ end key to go to first/ last page',
-    'Use h key to go to root page'
+    'Use h key to go to root page',
+    'Use t key to go to Table of Content'
   ];
 
   forEach(options, function(option) {
@@ -432,9 +443,7 @@ function focusTargetSlide() {
   var targetSlide = document.querySelector(window.location.hash || '.slide:first-child');
 
   // for any hash value, it will add .current class to #slide
-  while (!(/slide/.test(targetSlide.className) || targetSlide === null)){
-    targetSlide = targetSlide.parentNode;
-  }
+  targetSlide = document.getElementById('slide-'+getElementSlideNo(targetSlide));
 
   addClass(targetSlide, 'current');
   addClass(targetSlide.previousElementSibling, 'previous');
@@ -538,11 +547,16 @@ function changeTitle() {
   return title;
 }
 
-
+function getElementSlideNo (element) {
+  while (!(/slide/.test(element.className) || element===null)) {
+      element = element.parentNode;
+  }
+  return parseInt(element.id.substr(6));
+}
 
 function createTOC(){
   var headings = document.querySelectorAll("h1, h2");
-  var tocMarkdownString = "";
+  var tocMarkdownString = "# Table of Content\n";
 
   forEach(headings, function(heading){
     switch (heading.tagName) {

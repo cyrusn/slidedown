@@ -2,10 +2,9 @@
 ## [See Orginal Markdown File](md/example.md)
 
 -----
-# Table of Content
+<!-- Add table of Content -->
 
 <div id='toc'></div>
-
 
 -----
 # Tutorial
@@ -30,7 +29,6 @@ Use the links below to learn several syntax, the most basic syntax you have to l
 
     heading 1 - 2 will be aligned center,
     heading 3 - 6 will be aligned to left
-
 
 ### Headings 3
 #### Headings 4
