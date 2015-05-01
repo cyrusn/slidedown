@@ -1,13 +1,15 @@
 # Example
 ## [See Orginal Markdown File](md/example.md)
 
------
+***
 # Table of Content
 
 <!-- Add table of Content -->
 <div id='toc'></div>
 
------
+
+
+***
 # Tutorial
 
 Use the links below to learn several syntax, the most basic syntax you have to learn is `markdown`, please reach the first two link for detail.
@@ -34,7 +36,7 @@ Use the links below to learn several syntax, the most basic syntax you have to l
     + [PlantUML Salt][plantuml-salt]
     + [PlantUML Sitemap][plantuml-sitemap]
 
------
+***
 # Headings 1
 ## Headings 2
 
@@ -46,7 +48,7 @@ Use the links below to learn several syntax, the most basic syntax you have to l
     heading 4 - 6 will be aligned to left
 
 
------
+***
 # Styling text
 
 - *Italic*
@@ -62,7 +64,7 @@ Use the links below to learn several syntax, the most basic syntax you have to l
 - ~~Delete~~
 ```
 
------
+***
 # Blockquotes
 > Empty your mind, be *formless*. *Shapeless*, like **water**. If you put water into a cup, it becomes the cup. You put water into a bottle and it becomes the bottle. You put it in a teapot, it becomes the teapot. Now, water can *flow* or it can *crash*. ***Be water, my friend***.”
 
@@ -71,7 +73,7 @@ Use the links below to learn several syntax, the most basic syntax you have to l
 > Empty your mind, be *formless*. *Shapeless*, like **water**. If you put water into a cup, it becomes the cup. You put water into a bottle and it becomes the bottle. You put it in a teapot, it becomes the teapot. Now, water can *flow* or it can *crash*. ***Be water, my friend***.”
 ```
 
------
+***
 # Syntax Highlight
 
 There are **multiple syntax highlighting themes** to choose from. Here's one of them:
@@ -82,7 +84,7 @@ var hw = "Hello World!"
 alert(hw);
 ```
 
------
+***
 # List
 
 - You just **type naturally**, and the result looks good.
@@ -92,19 +94,24 @@ alert(hw);
 To see what else you can do with [Markdown][basic]
 (including **tables**, **images**, **numbered lists**, and more)
 
------
+***
 # Image
-you can also make link to your image
-``` md
+You can also make link to your image
 
+``` md
+<!-- Image Only -->
+![caption](link/to/image.jpg)
+
+<!-- Image with Link -->
 [![caption](link/to/image.jpg)](link/to/page.html)
 
 ```
+
 ![Text here will work like caption of image][image1]
 
 
 
------
+***
 # Table
 
 |Name      | Lunch order        | Owes       |
@@ -113,7 +120,19 @@ you can also make link to your image
 |Sally     | vindaloo           | $14        |
 |Erin      | lamb madras        | $5         |
 
------
+### You can type a table like this:
+``` md
+<!-- space can be ignored, which only make the markdown syntax more readable -->
+
+|Name      | Lunch order        | Owes       |
+|:-------  | :----------------: | ---------: |
+|Joan      | saag paneer        | $11        |
+|Sally     | vindaloo           | $14        |
+|Erin      | lamb madras        | $5         |
+
+```
+
+***
 # [Octicons][octicons]
 
 There are many icons you can use, here are some example.
@@ -129,7 +148,7 @@ For Details, please go to [octicons page][octicons]
 | <span class="octicon octicon-tag"></span>       | `<span class="octicon octicon-tag"></span>`       |
 | <span class="octicon octicon-squirrel"></span>  | `<span class="octicon octicon-squirrel"></span>`  |
 
------
+***
 # Column 1
 
 1. apple
@@ -141,7 +160,7 @@ For Details, please go to [octicons page][octicons]
 - foo
 - bar
 
------
+***
 # GFM markdown line break
 
 Lorem *ipsum* dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
@@ -150,7 +169,7 @@ Ut enim ad minim **veniam**, quis nostrud exercitation ullamco laboris nisi ut a
 Duis aute irure dolor in ***reprehenderit*** in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
 Excepteur sint ~~occaecat~~ cupidatat nonproident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 
------
+***
 # YouTube
 
 
@@ -158,12 +177,12 @@ Excepteur sint ~~occaecat~~ cupidatat nonproident, sunt in culpa qui officia des
 
 <div class="print-only">www.youtube.com/embed/4O9o4CKTGzQ</div>
 
------
+***
 # [TimelineJS][timelinejs]
 
 <div class="screen-only"><iframe src='http://cdn.knightlab.com/libs/timeline/latest/embed/index.html?source=0Agl_Dv6iEbDadHdKcHlHcTB5bzhvbF9iTWwyMmJHdkE&font=Bevan-PotanoSans&maptype=toner&lang=en&height=650' width='960' height='650' frameborder='0'></iframe></div>
 
------
+***
 
 # GoogleMap
 
@@ -190,7 +209,7 @@ ax^2 + bx + c = 0
 x = {-b \pm \sqrt{b^2-4ac} \over 2a}
 ```
 
------
+***
 # [Chemistry Equation][chem]
 
 Chemistry Equation can work like math equation, inline sytle like $\ce{C6H5}$, or paragraph style like below:
@@ -209,7 +228,7 @@ $$
 \ce{SO4^2- + Ba^2+ -> BaSO4 v}
 ```
 
------
+***
 # Mermaid
 ## Flowchart, Sequence Diagram, Gantt
 
@@ -226,7 +245,7 @@ graph LR;
 </pre>
 
 
------
+***
 # Flowchart
 
 ``` mermaid
@@ -256,7 +275,7 @@ graph TB
 
 [Learn][flowchart] and [try][editor] Mermaid.JS for flowchart.
 
------
+***
 # Squence
 
 ``` mermaid
@@ -276,7 +295,7 @@ sequenceDiagram
 
 [Learn][sequence] and [try][editor] Mermaid.JS for sequence diagram.
 
------
+***
 # Gantt
 
 ``` mermaid
@@ -396,7 +415,7 @@ rectangle checkout {
 ```
 <div class="caption">Salt</div>
 
------
+***
 # [GraphViz][graphviz]
 
 ### PlantUML can also render GraphViz Code
@@ -453,9 +472,10 @@ sleep -- runmem;
 # Google Drawing
 
 ### You can also use Google Drawing and public it to here.
-<iframe width="420" height="315" src="https://www.youtube.com/embed/5Vr7inMMnrs" frameborder="0" allowfullscreen></iframe>
+<div class="screen-only"><iframe width="420" height="315" src="https://www.youtube.com/embed/5Vr7inMMnrs" frameborder="0" allowfullscreen></iframe></div>
 
------
+
+***
 # Furthermore
 
 - Print this presenation
@@ -470,7 +490,7 @@ sleep -- runmem;
     + `<div class='screen-only'> your code </div>`
 
 
-----
+***
 # End
 
 [basic]: https://help.github.com/articles/markdown-basics/

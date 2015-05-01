@@ -66,7 +66,7 @@ li ol {
 }
 
 table {
-  margin: 0 auto;
+  margin: 0.5em auto;
   text-align: center !important;
   max-width: 100%;
   background-color: transparent;
@@ -149,10 +149,7 @@ blockquote {
     visibility: hidden;
     overflow-x: hidden;
   }
-  .slide .responsiveIframe {
-    /*display: none;*/
-    /*visibility: hidden;*/
-  }
+
   .slide .content {
     min-height: calc(100% - 48px);
     text-align: center;

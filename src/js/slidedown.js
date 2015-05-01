@@ -587,7 +587,6 @@ CustomRenderer.prototype = new marked.Renderer();
 // };
 
 CustomRenderer.prototype.image = function(href, title, text) {
-
   return '<img src="' + href + '" alt="' + text + '"/><div class="caption">' + text + '</div>';
 };
 
