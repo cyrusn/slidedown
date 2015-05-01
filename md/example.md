@@ -3,8 +3,8 @@
 
 -----
 # Table of Content
-<!-- Add table of Content -->
 
+<!-- Add table of Content -->
 <div id='toc'></div>
 
 -----
@@ -31,16 +31,17 @@ Use the links below to learn several syntax, the most basic syntax you have to l
     + [PlantUML Component][plantuml-component]
     + [PlantUML State][plantuml-state]
     + [PlantUML Object][plantuml-object]
+    + [PlantUML Salt][plantuml-salt]
+    + [PlantUML Sitemap][plantuml-sitemap]
 
 -----
 # Headings 1
 ## Headings 2
-
-    heading 1 - 2 will be aligned center and parsed to Table of Content.
-
-    heading 3 - 6 will be aligned to left
-
 ### Headings 3
+
+    heading 1 - 2 will be aligned to aligned center and parsed to Table of Content
+    heading 4 - 6 will be aligned to left
+
 #### Headings 4
 ##### Headings 5
 ###### Headings 6
@@ -95,11 +96,12 @@ To see what else you can do with [Markdown][basic]
 # Image
 you can also make link to your image
 ``` md
-[![image](link/to/image.jpg)](link/to/page.html)
+
+[![caption](link/to/image.jpg)](link/to/page.html)
 
 ```
+![Text here will work like caption of image][image1]
 
-![image][image1]
 
 
 -----
@@ -173,7 +175,7 @@ Excepteur sint ~~occaecat~~ cupidatat nonproident, sunt in culpa qui officia des
 
 Equaton are type inside `$ ... $` for inline, or `$$ ... $$` for paragraph.
 
-### e.g.
+### Example
 
 >My math is so rusty that I barely remember the _quadratic equation_:
 
@@ -221,6 +223,7 @@ graph LR;
 ```
 </pre>
 
+
 -----
 # Flowchart
 
@@ -247,6 +250,7 @@ graph TB
      class sq,e green
      class di orange
 ```
+<div class="caption">FlowChart</div>
 
 [Learn][flowchart] and [try][editor] Mermaid.JS for flowchart.
 
@@ -266,6 +270,7 @@ sequenceDiagram
     John->>Bob: How about you?
     Bob-->>John: Jolly good!
 ```
+<div class="caption">Sequence</div>
 
 [Learn][sequence] and [try][editor] Mermaid.JS for sequence diagram.
 
@@ -301,18 +306,7 @@ gantt
     Add gantt diagram to demo page      : 20h
     Add another diagram to demo page    : 48h
 ```
-
-``` mermaid
-gantt
-    title A Gantt Diagram
-
-    section Section
-    A task           :a1, 2014-01-01, 30d
-    Another task     :after a1  , 20d
-    section Another
-    Task in sec      :2014-01-12  , 12d
-    anther task      : 24d
-```
+<div class="caption">Gantt Example</div>
 
 
 [Learn][gantt] and [try][editor] Mermaid.JS for gantt graph.
@@ -321,8 +315,10 @@ gantt
 # PlantUML
 
 We also support [PlantUML][plantuml], but can only be parsed when you connected to internet.
+for more about PlantUML, please go to PlantUML [sitemap][plantuml-sitemap].
 
 ``` plantuml
+@startuml
 start
 :ClickServlet.handleRequest();
 :new page;
@@ -355,12 +351,117 @@ else
 endif
 
 stop
+@enduml
 ```
+<!-- another way to add caption of image -->
+
+<div class="caption">Activity</div>
+
+``` plantuml
+@startuml
+skinparam handwritten true
+left to right direction
+skinparam packageStyle rect
+actor customer
+actor clerk
+rectangle checkout {
+  customer -- (checkout)
+  (checkout) .> (payment) : include
+  (help) .> (checkout) : extends
+  (checkout) -- clerk
+}
+@enduml
+
+```
+<div class="caption">Use Case</div>
+
+``` plantuml
+@startsalt
+{+
+{* File | Edit | Source | Refactor
+ Refactor | New | Open File | - | Close | Close All }
+{/ General | Fullscreen | Behavior | Saving }
+{
+    { Open image in: | ^Smart Mode^ }
+    [X] Smooth images when zoomed
+    [X] Confirm image deletion
+    [ ] Show hidden images
+}
+[Close]
+}
+@endsalt
+
+```
+<div class="caption">Salt</div>
+
+-----
+# [GraphViz][graphviz]
+
+### PlantUML can also render GraphViz Code
+
+``` plantuml
+digraph finite_state_machine {
+    rankdir=LR;
+    size="8,5"
+    node [shape = doublecircle]; LR_0 LR_3 LR_4 LR_8;
+    node [shape = circle];
+    LR_0 -> LR_2 [ label = "SS(B)" ];
+    LR_0 -> LR_1 [ label = "SS(S)" ];
+    LR_1 -> LR_3 [ label = "S($end)" ];
+    LR_2 -> LR_6 [ label = "SS(b)" ];
+    LR_2 -> LR_5 [ label = "SS(a)" ];
+    LR_2 -> LR_4 [ label = "S(A)" ];
+    LR_5 -> LR_7 [ label = "S(b)" ];
+    LR_5 -> LR_5 [ label = "S(a)" ];
+    LR_6 -> LR_6 [ label = "S(b)" ];
+    LR_6 -> LR_5 [ label = "S(a)" ];
+    LR_7 -> LR_8 [ label = "S(b)" ];
+    LR_7 -> LR_5 [ label = "S(a)" ];
+    LR_8 -> LR_6 [ label = "S(b)" ];
+    LR_8 -> LR_5 [ label = "S(a)" ];
+}
+```
+<div class="caption">Dot Layout</div>
+
+
+```plantuml
+graph G {
+layout=neato
+run -- intr;
+intr -- runbl;
+runbl -- run;
+run -- kernel;
+kernel -- zombie;
+kernel -- sleep;
+kernel -- runmem;
+sleep -- swap;
+swap -- runswap;
+runswap -- new;
+runswap -- runmem;
+new -- runmem;
+sleep -- runmem;
+}
+
+```
+<div class="caption">Neato Layout</div>
+
+
 
 ----
+# Google Drawing
+
+### You can also use Google Drawing and public it to here.
+<iframe width="420" height="315" src="https://www.youtube.com/embed/5Vr7inMMnrs" frameborder="0" allowfullscreen></iframe>
+
+-----
 # Furthermore
+
 - Print this presenation
 - View it on mobile
+- Show The Table of Content
+    + `<div id='toc'></div>`
+- Caption
+    + `<div class="caption">Caption Text</div>`
 - Print Only
     + `<div class='print-only'> your code </div>`
 - Screen Only
@@ -389,3 +490,6 @@ stop
 [plantuml-component]:http://plantuml.sourceforge.net/component.html
 [plantuml-state]:http://plantuml.sourceforge.net/state.html
 [plantuml-object]:http://plantuml.sourceforge.net/objects.html
+[plantuml-salt]:http://plantuml.sourceforge.net/salt.html
+[plantuml-sitemap]: http://plantuml.sourceforge.net/sitemap.html
+[graphviz]: http://www.graphviz.org/

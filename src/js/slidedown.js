@@ -467,7 +467,7 @@ function responsiveMermaid(){
     var viewBox = svg.viewBox.baseVal;
     var parentNode = svg.parentNode;
     switch (true) {
-        case /gantt/.test(parentNode.className):
+        case /gantt/i.test(parentNode.className):
           svg.setAttribute('width', Math.min(width * 0.8, viewBox.width)  + 'px');
           break;
         default:
@@ -489,7 +489,7 @@ function setMermaidSvgViewBox() {
     var viewBox = svg.viewBox.baseVal;
     var parentNode = svg.parentNode;
     switch (true) {
-        case /gantt/.test(parentNode.className):
+        case /gantt/i.test(parentNode.className):
           // for gantt responsive
           // as mermaid gantt didn't genernate viewBox,
           // so set the dimension(viewBox) to 1024 and default height
@@ -585,6 +585,11 @@ CustomRenderer.prototype = new marked.Renderer();
 // CustomRenderer.prototype.link = function(href, title, text) {
 //   return '<a href="' + href + '" target="_blank">' + text + '</a>';
 // };
+
+CustomRenderer.prototype.image = function(href, title, text) {
+
+  return '<img src="' + href + '" alt="' + text + '"/><div class="caption">' + text + '</div>';
+};
 
 CustomRenderer.prototype.code = function(code, lang) {
 

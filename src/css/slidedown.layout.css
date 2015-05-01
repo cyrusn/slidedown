@@ -14,14 +14,6 @@
   }
 }
 
-h3,
-h4,
-h5,
-h6 {
-  padding: 0 5%;
-  margin: 0;
-  text-align: left;
-}
 
 body {
   font-family: sans-serif;
@@ -110,7 +102,9 @@ thead > tr > td {
 }
 
 img {
+  margin: 0.5em auto;
   max-width: 70%;
+  display: block;
   height: auto;
   padding: 4px;
   line-height: 1.42857143;
@@ -200,7 +194,7 @@ blockquote {
   }
   .slide.current .responsiveIframe {
     /*visibility: visible;*/
-    margin: 5% auto;
+    margin: 0.5em auto;
     display: block !important;
   }
   .slide.previous {
@@ -253,6 +247,26 @@ blockquote {
   margin: 2% auto;
   text-align: center;
 }
+
+.slide h3,
+.slide h4,
+.slide h5,
+.slide h6 {
+  padding: 0 5%;
+  margin: 0;
+  text-align: left;
+}
+
+.slide .caption {
+  padding: 0 5%;
+  margin: 0;
+  text-align: center;
+  font-weight:bold;
+  font-size: 80%;
+  opacity:0.7;
+  padding-bottom: 1em
+}
+
 
 .slide pre {
   text-align: left;
