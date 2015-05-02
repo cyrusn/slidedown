@@ -1,36 +1,11 @@
 /* Flowchart variables */
 /* Sequence Diagram variables */
 /* Gantt chart variables */
-.mermaid {
-  margin: 1% 0;
-  background-color: #FFFFFF;
-  text-align: center;
-  display: block;
-  border-radius: 4px;
-  border: 1px solid #222222;
-}
-
-@media screen {
-  .gantt {
-    width: 1024px;
-  }
-}
-
-@media print {
-  .mermaid {
-    display: block;
-    left: 10%;
-    right: 10%;
-    height: auto;
-  }
-  .mermaid svg {
-    width: 100%;
-  }
-}
 
 .mermaid .label {
   color: #333333;
 }
+
 .node rect,
 .node circle,
 .node polygon {

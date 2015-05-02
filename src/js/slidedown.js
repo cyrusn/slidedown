@@ -70,6 +70,7 @@ Slidedown.prototype = {
         element.id = 'slide-' + number;
         element.className = 'slide';
 
+        // .slideNo will only be shown on print view
         var addSlideNumberToSlide = "<div class='slideNo'><span>slide " + number + "</span></div>";
 
         var content = document.createElement('DIV');
@@ -77,6 +78,7 @@ Slidedown.prototype = {
         content.setAttribute('data-layout', slide.layout);
 
         // add class `responsiveIframe` for iframe
+        // TODO: use cheerio/jquery
         var resultHTML = slide.html.replace(new RegExp("<iframe", "g"), '<iframe class="responsiveIframe"');
 
         content.innerHTML = resultHTML + addSlideNumberToSlide;
@@ -148,6 +150,7 @@ Slidedown.prototype = {
         }, 0);
       });
 
+      // for fix the width and height of iframe and mermaid
       ['orientationchange', 'resize'].forEach(function(event){
         window.addEventListener(event, function(){
           responsiveMermaid();

@@ -54,7 +54,13 @@ strong {
 }
 
 tr:nth-child(even) {
-  background-color: #C0C0C0;
+  background-color: #ddd;
+}
+
+thead > tr > th,
+thead > tr > td  {
+  background-color: #4A4A4A;
+  color: #F6F5F6;
 }
 
 [data-layout="title-subtitle"] h2 {

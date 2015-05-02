@@ -12,8 +12,8 @@
     background: white;
     display: block;
     margin: 0;
-    font-size: 90% !important;
     box-shadow: 0;
+    font-size: 90% !important;
   }
   h1 {
     border-bottom: none !important;
@@ -55,4 +55,15 @@
     background: #fff !important;
     padding: 0 24px;
   }
+
+  .mermaid {
+    display: block;
+    left: 10%;
+    right: 10%;
+    height: auto;
+  }
+  .mermaid svg {
+    width: 100%;
+  }
+
 }

@@ -1,3 +1,6 @@
+<img src="image/slidedown_xl.png" style="width:50%;border:none; background-color:transparent;">
+
+***
 # SlideDown
 ## README
 

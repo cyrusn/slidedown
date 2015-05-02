@@ -14,14 +14,17 @@
   }
 }
 
-
 body {
   font-family: sans-serif;
 }
 
+p + p {
+  margin-top: 1em;
+}
+
 p {
-  margin: auto;
-  padding: 0.5em 5%;
+  margin: 0.5em auto;
+  padding: 0 5%;
   text-align: left;
 }
 
@@ -53,11 +56,12 @@ li ol {
 
 .githubIcon {
   position: absolute;
+  font-size: 150%;
   z-index: 1;
 }
 
 .octicon {
-  font-size: 120%;
+  font-size: 100%;
 }
 
 .githubIcon a:hover {
@@ -70,11 +74,7 @@ table {
   text-align: center !important;
   max-width: 100%;
   background-color: transparent;
-}
-
-h1 + table,
-h2 + table{
-  margin: 5% auto;
+  min-width: 80%;
 }
 
 tbody > tr > th,
@@ -98,7 +98,7 @@ thead > tr > td {
   line-height: 1.42857143;
   vertical-align: top;
   border-bottom-width: 4px;
-  border-style: none none double none;
+  border-style: none none double;
 }
 
 img {
@@ -209,7 +209,7 @@ blockquote {
 
 @media screen and (max-width: 767px) {
   body {
-    font-size: 100% !important;
+    font-size: 100%;
   }
   .slide .content {
     width: 90vw;
@@ -362,4 +362,16 @@ blockquote {
   .print-only {
     display: none !important;
   }
+  .gantt {
+    width: 1024px;
+  }
+}
+
+.mermaid {
+  margin: 1% 0;
+  background-color: #FFFFFF;
+  text-align: center;
+  display: block;
+  border-radius: 4px;
+  border: 1px solid #222222;
 }

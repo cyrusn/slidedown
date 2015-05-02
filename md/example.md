@@ -21,31 +21,32 @@ Use the links below to learn several syntax, the most basic syntax you have to l
     + [TeX Syntax for Chemistry][chem]
 - TimelineJS for beautifully crafted timlines
     - [TimelineJS][timelinejs]
-- Mermaid for drawing graph by text
+- [Mermaid][mermaid] for drawing graph by text
     + [Mermaid Flowchart][flowchart]
     + [Mermaid Sequence][sequence]
     + [Mermaid Gantt][gantt]
 - [PlantUML][plantuml] for drawing graph by text
-    + [PlantUML Sequence][plantuml-sequence]
-    + [PlantUML Use Case][plantuml-usecase]
-    + [PlantUML Classes][plantuml-classes]
-    + [PlantUML Activity][plantuml-activity]
-    + [PlantUML Component][plantuml-component]
-    + [PlantUML State][plantuml-state]
-    + [PlantUML Object][plantuml-object]
-    + [PlantUML Salt][plantuml-salt]
     + [PlantUML Sitemap][plantuml-sitemap]
 
 ***
 # Headings 1
 ## Headings 2
-
 ### Headings 3
 #### Headings 4
 ##### Headings 5
 ###### Headings 6
-    heading 1 - 2 will be aligned to aligned center and parsed to Table of Content
-    heading 4 - 6 will be aligned to left
+
+```md
+# Headings 1
+## Headings 2
+### Headings 3
+#### Headings 4
+##### Headings 5
+###### Headings 6
+```
+
+    heading 1 - 2 will be aligned to center and parsed to Table of Content
+    heading 3 - 6 will be aligned to left
 
 
 ***
@@ -66,6 +67,8 @@ Use the links below to learn several syntax, the most basic syntax you have to l
 
 ***
 # Blockquotes
+
+Use `>` sign for Blockquote
 > Empty your mind, be *formless*. *Shapeless*, like **water**. If you put water into a cup, it becomes the cup. You put water into a bottle and it becomes the bottle. You put it in a teapot, it becomes the teapot. Now, water can *flow* or it can *crash*. ***Be water, my friend***.”
 
 ### markdown syntax
@@ -78,11 +81,23 @@ Use the links below to learn several syntax, the most basic syntax you have to l
 
 There are **multiple syntax highlighting themes** to choose from. Here's one of them:
 
+
+<pre class="hljs">
 ``` javascript
 // All the code you will ever need
 var hw = "Hello World!"
 alert(hw);
 ```
+</pre>
+
+<div class="caption">What you type in md</div>
+
+``` javascript
+// All the code you will ever need
+var hw = "Hello World!"
+alert(hw);
+```
+<div class="caption">Result</div>
 
 ***
 # List
@@ -91,8 +106,29 @@ alert(hw);
 - You **don't have to worry** about clicking formatting buttons.
   - Or fiddling with indentation. (Two spaces is all you need.)
 
-To see what else you can do with [Markdown][basic]
-(including **tables**, **images**, **numbered lists**, and more)
+``` md
+- You just **type naturally**, and the result looks good.
+- You **don't have to worry** about clicking formatting buttons.
+  - Or fiddling with indentation. (Two spaces is all you need.)
+```
+
+***
+# Link
+
+You can make link to any text.
+
+### Method 1
+``` md
+[text](path/to/page.html)
+```
+
+### Method 2
+``` md
+[text][alias]
+
+<!-- as the bottom of the markdown -->
+[alias]:path/to/page.html
+```
 
 ***
 # Image
@@ -110,7 +146,6 @@ You can also make link to your image
 ![Text here will work like caption of image][image1]
 
 
-
 ***
 # Table
 
@@ -122,7 +157,7 @@ You can also make link to your image
 
 ### You can type a table like this:
 ``` md
-<!-- space can be ignored, which only make the markdown syntax more readable -->
+<!-- space can be omitted, which only make the markdown syntax more readable -->
 
 |Name      | Lunch order        | Owes       |
 |:-------  | :----------------: | ---------: |
@@ -135,7 +170,7 @@ You can also make link to your image
 ***
 # [Octicons][octicons]
 
-There are many icons you can use, here are some example.
+There are some icons you can use, here are some example.
 For Details, please go to [octicons page][octicons]
 
 | Icon                                            | Code                                              |
@@ -160,14 +195,23 @@ For Details, please go to [octicons page][octicons]
 - foo
 - bar
 
+
 ***
-# GFM markdown line break
+# GFM markdown [line break][link-break]
 
 Lorem *ipsum* dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
 Ut enim ad minim **veniam**, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
 
 Duis aute irure dolor in ***reprehenderit*** in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
 Excepteur sint ~~occaecat~~ cupidatat nonproident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+***
+# IFRAME
+
+YouTube, GoogleMap, TimelineJS and many other services use `iframe` tag for embedding its service to HTML.
+
+Markdown support `HTML` code, so you can embed iframe to markdown directly.
+
 
 ***
 # YouTube
@@ -186,40 +230,41 @@ Excepteur sint ~~occaecat~~ cupidatat nonproident, sunt in culpa qui officia des
 
 # GoogleMap
 
-<iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d1844.1148177117416!2d114.20711185515593!3d22.420381136700325!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3404089ce8ada749%3A0x5bd1c53294d0f7ce!2sThe+Chinese+University+of+Hong+Kong!5e0!3m2!1sen!2s!4v1429842328715" width="600" height="450"></iframe>
+<iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d14761.82448168334!2d114.265465!3d22.3364!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x2bedd58f9cf841be!2sHong+Kong+University+of+Science+and+Technology!5e0!3m2!1sen!2s!4v1430490916490" width="600" height="450" frameborder="0"></iframe>
 
-<div class="caption">CUHK</div>
+<div class="caption">The Hong Kong University of Science and Technology</div>
 
 ***
 
 # [MathJax][mathjax]
 
-Equaton are type inside `$ ... $` for inline, or `$$ ... $$` for paragraph.
+You can type equatons, `TeX` [syntax][mathjax] are typed inside `$ ... $` for inline, or `$$ ... $$` for paragraph.
+
 
 ### Example
 
->My math is so rusty that I barely remember the _quadratic equation_:
+>My math is so rusty that I barely remember the *quadratic equation*:
 
 >When $$$a \ne 0$$$, there are two solutions to $ax^2 + bx + c = 0$ and they are
 $$x = {-b \pm \sqrt{b^2-4ac} \over 2a}$$
 
-```tex
-% example of math equation
-ax^2 + bx + c = 0
-x = {-b \pm \sqrt{b^2-4ac} \over 2a}
+### Syntax
+```md
+>My math is so rusty that I barely remember the *quadratic equation*:
+
+>When $$$a \ne 0$$$, there are two solutions to $ax^2 + bx + c = 0$ and they are
+$$x = {-b \pm \sqrt{b^2-4ac} \over 2a}$$
 ```
 
 ***
 # [Chemistry Equation][chem]
 
-Chemistry Equation can work like math equation, inline sytle like $\ce{C6H5}$, or paragraph style like below:
+Typing **Chemistry Equation** just like math , inline sytle like $\ce{C6H5}$, or paragraph style like below:
 $$
 \ce{C6H5-CHO}
 \ce{$A$ ->[\ce{+H2O}] $B$}
 \ce{SO4^2- + Ba^2+ -> BaSO4 v}
 $$
-
-
 
 ``` tex
 % example code of chemistry equation
@@ -229,8 +274,10 @@ $$
 ```
 
 ***
-# Mermaid
+# [Mermaid][mermaid]
 ## Flowchart, Sequence Diagram, Gantt
+
+Drawing graph can't get more easy, you can keep your finger tip on the keyboard and draw the beautiful UML graph by typing text.
 
 Include all graph syntax with code language `mermaid`:
 
@@ -336,7 +383,8 @@ gantt
 # PlantUML
 
 We also support [PlantUML][plantuml], but can only be parsed when you connected to internet.
-for more about PlantUML, please go to PlantUML [sitemap][plantuml-sitemap].
+
+For more about PlantUML, please go to PlantUML [sitemap][plantuml-sitemap].
 
 ``` plantuml
 @startuml
@@ -415,6 +463,13 @@ rectangle checkout {
 ```
 <div class="caption">Salt</div>
 
+``` plantuml
+@startuml
+sudoku
+@enduml
+```
+<div class="caption">Just for Fun</div>
+
 ***
 # [GraphViz][graphviz]
 
@@ -471,18 +526,18 @@ sleep -- runmem;
 ----
 # Google Drawing
 
-### You can also use Google Drawing and public it to here.
+### You can also use Google Drawing and publish it to here.
 <div class="screen-only"><iframe width="420" height="315" src="https://www.youtube.com/embed/5Vr7inMMnrs" frameborder="0" allowfullscreen></iframe></div>
 
 
 ***
 # Furthermore
 
-- Print this presenation
-- View it on mobile
+- Print this presenation, the presentation will print like a document.
+- View it on mobile, it's responsive.
 - Show The Table of Content
     + `<div id='toc'></div>`
-- Caption
+- Add caption to e.g. image, iframe, table etc...
     + `<div class="caption">Caption Text</div>`
 - Print Only
     + `<div class='print-only'> your code </div>`
@@ -499,6 +554,7 @@ sleep -- runmem;
 [mathjax]: http://meta.math.stackexchange.com/questions/5020/mathjax-basic-tutorial-and-quick-reference
 [chem]: ftp://ftp.comp.hkbu.edu.hk/pub/TeX/CTAN/macros/latex/contrib/mhchem/mhchem.pdf
 [octicons]: https://octicons.github.com/
+[mermaid]:http://knsv.github.io/mermaid/
 [flowchart]: http://knsv.github.io/mermaid/flowchart.html
 [sequence]: http://knsv.github.io/mermaid/sequenceDiagram.html
 [gantt]: http://knsv.github.io/mermaid/gantt.html
@@ -515,3 +571,4 @@ sleep -- runmem;
 [plantuml-salt]:http://plantuml.sourceforge.net/salt.html
 [plantuml-sitemap]: http://plantuml.sourceforge.net/sitemap.html
 [graphviz]: http://www.graphviz.org/
+[link-break]: https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet#lines
